@@ -117,6 +117,7 @@ const ItemForm: React.FC<{
                         setTimeout(() => {
                             stopScanner();
                             setScanSuccess(false);
+                            setIsScanning(false); // Fecha o modal da câmera
                             // Remove highlight after 2 seconds
                             setTimeout(() => setBarcodeJustScanned(false), 2000);
                         }, 1000); // 1 segundo para mostrar o feedback
@@ -179,17 +180,6 @@ const ItemForm: React.FC<{
                             >
                                 Cancelar Scanner
                             </button>
-                            
-                            {/* Dicas de uso */}
-                            <div className="absolute top-4 left-0 right-0 px-4">
-                                <div className="bg-black bg-opacity-70 text-white text-sm p-3 rounded-lg text-center">
-                                    <p className="font-semibold mb-1">� Dicas para ler CÓDIGO DE BARRAS:</p>
-                                    <p>• Posicione o código HORIZONTALMENTE</p>
-                                    <p>• Distância: 10-15cm da câmera</p>
-                                    <p>• Boa iluminação (sem sombras)</p>
-                                    <p>• Mantenha o celular firme</p>
-                                </div>
-                            </div>
                         </div>
                         {scanError && <p className="mt-2 text-red-600 text-sm">{scanError}</p>}
                     </div>

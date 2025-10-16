@@ -200,17 +200,6 @@ const CollaboratorDashboard: React.FC = () => {
                          <button onClick={stopScanner} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-3 rounded-lg font-bold">
                             Cancelar
                          </button>
-                         
-                         {/* Dicas de uso */}
-                         <div className="absolute top-4 left-0 right-0 px-4">
-                             <div className="bg-black bg-opacity-70 text-white text-sm p-3 rounded-lg text-center">
-                                 <p className="font-semibold mb-1">� Dicas para ler CÓDIGO DE BARRAS:</p>
-                                 <p>• Posicione o código HORIZONTALMENTE</p>
-                                 <p>• Distância: 10-15cm da câmera</p>
-                                 <p>• Boa iluminação (sem sombras)</p>
-                                 <p>• Mantenha o celular firme</p>
-                             </div>
-                         </div>
                     </div>
                 ) : (
                     <div className="text-center">
