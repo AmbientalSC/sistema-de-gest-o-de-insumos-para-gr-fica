@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { StockMovement, MovementType } from '../../types';
-import { apiGetMovementHistory } from '../../services/mockApi';
+import { apiGetMovementHistory } from '../../services/firebaseApi';
 
 const MovementHistory: React.FC = () => {
     const [movements, setMovements] = useState<StockMovement[]>([]);

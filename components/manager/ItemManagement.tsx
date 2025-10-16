@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Item } from '../../types';
-import { apiGetItems, apiAddItem, apiUpdateItem, apiAddStock } from '../../services/mockApi';
+import { apiGetItems, apiAddItem, apiUpdateItem, apiAddStock } from '../../services/firebaseApi';
 import { PlusCircle, AlertTriangle, Camera } from '../common/Icons';
 
 // Global type for html5-qrcode library

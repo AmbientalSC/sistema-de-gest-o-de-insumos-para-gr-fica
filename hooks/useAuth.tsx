@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { User } from '../types';
-import { apiLogin } from '../services/mockApi';
+import { apiLogin, apiSignOut } from '../services/firebaseApi';
 
 interface AuthContextType {
   user: User | null;
@@ -28,9 +28,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = useCallback(async () => {
+    try {
+      await apiSignOut();
+      setUser(null);
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Remove local data anyway
+      setUser(null);
+      localStorage.removeItem('user');
+    }
   }, []);
 
   return (

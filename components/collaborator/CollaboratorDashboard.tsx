@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Item } from '../../types';
-import { apiGetItemByBarcode, apiCheckoutItem } from '../../services/mockApi';
+import { apiGetItemByBarcode, apiCheckoutItem } from '../../services/firebaseApi';
 import Header from '../common/Header';
 import { Camera, CheckCircle } from '../common/Icons';
 
