@@ -75,11 +75,14 @@ const ItemForm: React.FC<{
                 const html5QrCode = new window.Html5Qrcode(readerElementId);
                 scannerRef.current = html5QrCode;
                 
-                // Configurações otimizadas para códigos de barras
+                // Configurações otimizadas para CÓDIGOS DE BARRAS (retangular horizontal)
                 const config = {
                     fps: 10,
-                    qrbox: 250,
-                    aspectRatio: 1.0,
+                    qrbox: { 
+                        width: 300,  // Largo para barcode horizontal
+                        height: 150  // Mais estreito verticalmente
+                    },
+                    aspectRatio: 1.777778, // 16:9 para câmera
                 };
                 
                 html5QrCode.start(
@@ -168,11 +171,11 @@ const ItemForm: React.FC<{
                             {/* Dicas de uso */}
                             <div className="absolute top-4 left-0 right-0 px-4">
                                 <div className="bg-black bg-opacity-70 text-white text-sm p-3 rounded-lg text-center">
-                                    <p className="font-semibold mb-1">📱 Dicas para melhor leitura:</p>
-                                    <p>• Mantenha distância de 10-20cm</p>
-                                    <p>• Certifique-se de ter boa iluminação</p>
-                                    <p>• Mantenha o celular firme e paralelo</p>
-                                    <p>• Para códigos pequenos, aproxime devagar</p>
+                                    <p className="font-semibold mb-1">� Dicas para ler CÓDIGO DE BARRAS:</p>
+                                    <p>• Posicione o código HORIZONTALMENTE</p>
+                                    <p>• Distância: 10-15cm da câmera</p>
+                                    <p>• Boa iluminação (sem sombras)</p>
+                                    <p>• Mantenha o celular firme</p>
                                 </div>
                             </div>
                         </div>
