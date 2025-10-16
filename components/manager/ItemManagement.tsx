@@ -43,6 +43,7 @@ const ItemForm: React.FC<{
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanSuccess, setScanSuccess] = useState(false);
+    const [barcodeJustScanned, setBarcodeJustScanned] = useState(false);
     const scannerRef = useRef<any>(null);
     const readerElementId = "qr-reader-item-form";
 
@@ -105,15 +106,25 @@ const ItemForm: React.FC<{
                     { facingMode: "environment" },
                     config,
                     (decodedText: string) => {
-                        // Show success feedback
+                        // Vibração de feedback (se disponível)
+                        if (navigator.vibrate) {
+                            navigator.vibrate(200); // Vibra por 200ms
+                        }
+                        
+                        // Show success feedback immediately
                         setScanSuccess(true);
                         setFormData(prev => ({ ...prev, barcode: decodedText }));
                         
-                        // Wait a moment to show success, then close scanner
+                        // Highlight barcode field
+                        setBarcodeJustScanned(true);
+                        
+                        // Stop scanner and close modal after showing success
                         setTimeout(() => {
                             stopScanner();
                             setScanSuccess(false);
-                        }, 800);
+                            // Remove highlight after 2 seconds
+                            setTimeout(() => setBarcodeJustScanned(false), 2000);
+                        }, 1000); // 1 segundo para mostrar o feedback
                     },
                     (errorMessage: string) => { /* ignore errors */ }
                 ).catch((err: any) => {
@@ -156,11 +167,12 @@ const ItemForm: React.FC<{
                             <div id={readerElementId} className="w-full h-full" />
                             
                             {scanSuccess && (
-                                <div className="absolute inset-0 bg-green-500 bg-opacity-90 flex flex-col items-center justify-center text-white z-10">
-                                    <svg className="w-20 h-20 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                <div className="absolute inset-0 bg-green-500 bg-opacity-95 flex flex-col items-center justify-center text-white z-10 animate-pulse">
+                                    <svg className="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                     </svg>
-                                    <p className="text-xl font-bold">Código Lido!</p>
+                                    <p className="text-2xl font-bold mb-2">✓ Código Encontrado!</p>
+                                    <p className="text-lg">Preenchendo formulário...</p>
                                 </div>
                             )}
                             
@@ -199,7 +211,11 @@ const ItemForm: React.FC<{
                                     value={formData.barcode || ''} 
                                     onChange={handleChange} 
                                     placeholder="Digite ou escaneie" 
-                                    className="flex-1 p-2 border rounded" 
+                                    className={`flex-1 p-2 border rounded transition-all duration-300 ${
+                                        barcodeJustScanned 
+                                            ? 'border-green-500 bg-green-50 ring-2 ring-green-300' 
+                                            : 'border-gray-300'
+                                    }`}
                                     required
                                 />
                                 <button
