@@ -109,8 +109,8 @@ const CollaboratorDashboard: React.FC = () => {
                 // Configurações otimizadas para códigos de barras
                 const config = {
                     fps: 10,
-                    qrbox: { width: 300, height: 150 }, // Retangular para códigos de barras
-                    aspectRatio: 2.0, // Proporção horizontal para barcode
+                    qrbox: 250, // Área de leitura quadrada menor
+                    aspectRatio: 1.0,
                     disableFlip: false,
                 };
                 
