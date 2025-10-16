@@ -3,8 +3,8 @@
 ## Passo 1: Criar Repositório no GitHub
 
 1. Acesse: https://github.com/new
-2. **Nome do repositório:** `sistema-de-gestao-de-insumos-para-grafica`
-3. **Descrição:** Sistema de Gestão de Insumos para Gráfica com Scanner de Código de Barras
+2. **Nome do repositório:** `sistema-teste`
+3. **Descrição:** Sistema de Gestão de Insumos com Firebase
 4. **Visibilidade:** Public (para usar GitHub Pages gratuitamente)
 5. **NÃO** marque "Add a README file"
 6. Clique em **"Create repository"**
@@ -15,7 +15,7 @@ Depois de criar o repositório, execute os comandos abaixo no PowerShell:
 
 ```powershell
 # Substitua SEU_USUARIO pelo seu username do GitHub
-git remote add origin https://github.com/SEU_USUARIO/sistema-de-gestao-de-insumos-para-grafica.git
+git remote add origin https://github.com/SEU_USUARIO/sistema-teste.git
 
 # Renomear branch para main (padrão do GitHub)
 git branch -M main
@@ -51,20 +51,22 @@ Este comando irá:
 Após alguns minutos, seu site estará disponível em:
 
 ```
-https://SEU_USUARIO.github.io/sistema-de-gestao-de-insumos-para-grafica/
+https://SEU_USUARIO.github.io/sistema-teste/
 ```
 
 ---
 
 ## ⚠️ Importante
 
-### Atualizar o `base` no vite.config.ts
+### Configuração do `base` no vite.config.ts
 
-Se você nomeou o repositório diferente, atualize a linha `base` no arquivo `vite.config.ts`:
+O arquivo `vite.config.ts` já está configurado com:
 
 ```typescript
-base: '/NOME-DO-SEU-REPOSITORIO/',
+base: '/sistema-teste/',
 ```
+
+Se você renomear o repositório, atualize este valor para o novo nome.
 
 ### Atualizações Futuras
 
