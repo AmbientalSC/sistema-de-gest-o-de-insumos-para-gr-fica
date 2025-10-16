@@ -112,29 +112,10 @@ const CollaboratorDashboard: React.FC = () => {
                     qrbox: { width: 300, height: 150 }, // Retangular para códigos de barras
                     aspectRatio: 2.0, // Proporção horizontal para barcode
                     disableFlip: false,
-                    // Formatos suportados - foco em códigos de barras
-                    formatsToSupport: [
-                        window.Html5Qrcode.SCAN_TYPE_CODE_128,
-                        window.Html5Qrcode.SCAN_TYPE_CODE_39,
-                        window.Html5Qrcode.SCAN_TYPE_EAN_13,
-                        window.Html5Qrcode.SCAN_TYPE_EAN_8,
-                        window.Html5Qrcode.SCAN_TYPE_UPC_A,
-                        window.Html5Qrcode.SCAN_TYPE_UPC_E,
-                        window.Html5Qrcode.SCAN_TYPE_ITF,
-                    ]
-                };
-                
-                const cameraConfig = { 
-                    facingMode: "environment",
-                    // Configurações de câmera para melhor leitura
-                    advanced: [
-                        { focusMode: "continuous" },
-                        { zoom: 1.0 }
-                    ]
                 };
                 
                 html5QrCode.start(
-                    cameraConfig,
+                    { facingMode: "environment" },
                     config,
                     async (decodedText: string) => {
                         try {
