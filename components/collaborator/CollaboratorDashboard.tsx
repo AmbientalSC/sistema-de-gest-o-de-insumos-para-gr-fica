@@ -91,29 +91,42 @@ const CollaboratorDashboard: React.FC = () => {
     const startScanner = useCallback(() => {
         if (!isScanning && window.Html5Qrcode) {
             setScanError(null);
-            const html5QrCode = new window.Html5Qrcode(readerElementId);
-            scannerRef.current = html5QrCode;
             setIsScanning(true);
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                async (decodedText: string) => {
-                    try {
-                        stopScanner();
-                        const item = await apiGetItemByBarcode(decodedText);
-                        setScannedItem(item);
-                    } catch (error) {
-                        setScanError("Código de barras não encontrado.");
-                        setTimeout(() => setScanError(null), 3000);
-                        stopScanner();
-                    }
-                },
-                (errorMessage: string) => { /* ignore errors */ }
-            ).catch((err: any) => {
-                console.error("Unable to start scanning.", err);
-                setScanError("Não foi possível iniciar a câmera.");
-                setIsScanning(false);
-            });
+            
+            // Wait for DOM element to be ready
+            setTimeout(() => {
+                const element = document.getElementById(readerElementId);
+                if (!element) {
+                    console.error("Scanner element not found");
+                    setScanError("Erro ao inicializar scanner.");
+                    setIsScanning(false);
+                    return;
+                }
+                
+                const html5QrCode = new window.Html5Qrcode(readerElementId);
+                scannerRef.current = html5QrCode;
+                
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    async (decodedText: string) => {
+                        try {
+                            stopScanner();
+                            const item = await apiGetItemByBarcode(decodedText);
+                            setScannedItem(item);
+                        } catch (error) {
+                            setScanError("Código de barras não encontrado.");
+                            setTimeout(() => setScanError(null), 3000);
+                            stopScanner();
+                        }
+                    },
+                    (errorMessage: string) => { /* ignore errors */ }
+                ).catch((err: any) => {
+                    console.error("Unable to start scanning.", err);
+                    setScanError("Não foi possível iniciar a câmera.");
+                    setIsScanning(false);
+                });
+            }, 100);
         }
     }, [isScanning]);
     
