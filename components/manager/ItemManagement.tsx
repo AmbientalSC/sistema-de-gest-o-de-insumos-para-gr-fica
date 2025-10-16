@@ -75,31 +75,11 @@ const ItemForm: React.FC<{
                 const html5QrCode = new window.Html5Qrcode(readerElementId);
                 scannerRef.current = html5QrCode;
                 
-                // Configurações otimizadas para códigos de barras pequenos em celular
+                // Configurações otimizadas para códigos de barras
                 const config = {
-                    fps: 20, // Aumentar fps para melhor detecção
-                    qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-                        // Área adaptativa - 80% da menor dimensão
-                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        const qrboxSize = Math.floor(minEdge * 0.8);
-                        return {
-                            width: qrboxSize,
-                            height: Math.floor(qrboxSize * 0.6) // Retangular para barcode
-                        };
-                    },
-                    aspectRatio: 1.777778, // 16:9 - padrão de câmeras mobile
-                    disableFlip: false,
-                    videoConstraints: {
-                        facingMode: "environment",
-                        // Solicitar resolução alta para códigos pequenos
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
-                        // Foco e zoom para melhor leitura
-                        advanced: [
-                            { focusMode: "continuous" },
-                            { zoom: 2.0 } // Zoom 2x para códigos pequenos
-                        ]
-                    }
+                    fps: 10,
+                    qrbox: 250,
+                    aspectRatio: 1.0,
                 };
                 
                 html5QrCode.start(
