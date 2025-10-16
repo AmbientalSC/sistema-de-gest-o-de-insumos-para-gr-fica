@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: '/sistema-de-gestão-de-insumos-para-gráfica/',
+      base: '/sistema-de-gest-o-de-insumos-para-gr-fica/',
       server: {
         port: 3000,
         host: '0.0.0.0',
