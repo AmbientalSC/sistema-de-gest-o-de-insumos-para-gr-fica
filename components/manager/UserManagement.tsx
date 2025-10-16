@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Role } from '../../types';
-import { apiGetUsers, apiAddUser } from '../../services/mockApi';
+import { apiGetUsers, apiAddUser, apiToggleUserStatus } from '../../services/firebaseApi';
 import { UserPlus } from '../common/Icons';
 
 const UserForm: React.FC<{ 
@@ -47,12 +47,20 @@ const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     const fetchUsers = useCallback(async () => {
         setIsLoading(true);
-        const fetchedUsers = await apiGetUsers();
-        setUsers(fetchedUsers);
-        setIsLoading(false);
+        setError(null);
+        try {
+            const fetchedUsers = await apiGetUsers();
+            setUsers(fetchedUsers);
+        } catch (err: any) {
+            setError('Erro ao carregar usuários: ' + err.message);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -60,9 +68,32 @@ const UserManagement: React.FC = () => {
     }, [fetchUsers]);
 
     const handleSaveUser = async (user: Partial<User>) => {
-        await apiAddUser(user);
-        setIsFormOpen(false);
-        fetchUsers();
+        setError(null);
+        setSuccess(null);
+        try {
+            await apiAddUser(user);
+            setIsFormOpen(false);
+            setSuccess('Usuário criado com sucesso!');
+            setTimeout(() => setSuccess(null), 3000);
+            fetchUsers();
+        } catch (err: any) {
+            setError(err.message);
+            setTimeout(() => setError(null), 5000);
+        }
+    };
+
+    const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+        setError(null);
+        setSuccess(null);
+        try {
+            await apiToggleUserStatus(userId, !currentStatus);
+            setSuccess(`Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
+            setTimeout(() => setSuccess(null), 3000);
+            fetchUsers();
+        } catch (err: any) {
+            setError('Erro ao alterar status: ' + err.message);
+            setTimeout(() => setError(null), 5000);
+        }
     };
 
     return (
@@ -75,7 +106,28 @@ const UserManagement: React.FC = () => {
                 </button>
             </div>
 
-            {isLoading ? <p>Carregando...</p> : (
+            {/* Mensagens de sucesso e erro */}
+            {success && (
+                <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                    {success}
+                </div>
+            )}
+            {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                    {error}
+                </div>
+            )}
+
+            {isLoading ? (
+                <div className="text-center py-8">
+                    <p className="text-gray-600">Carregando usuários...</p>
+                </div>
+            ) : users.length === 0 ? (
+                <div className="text-center py-8">
+                    <p className="text-gray-600">Nenhum usuário cadastrado.</p>
+                    <p className="text-sm text-gray-500 mt-2">Clique em "Adicionar Usuário" para criar o primeiro acesso.</p>
+                </div>
+            ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 border-b-2 border-gray-200">
@@ -83,17 +135,36 @@ const UserManagement: React.FC = () => {
                                 <th className="p-3 text-sm font-semibold tracking-wide text-left">Nome</th>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-left">Usuário</th>
                                 <th className="p-3 text-sm font-semibold tracking-wide text-left">Perfil</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-left">Status</th>
+                                <th className="p-3 text-sm font-semibold tracking-wide text-left">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map(user => (
-                                <tr key={user.id} className="bg-white border-b">
+                                <tr key={user.id} className={`border-b ${user.active === false ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
                                     <td className="p-3 text-sm text-gray-700">{user.name}</td>
                                     <td className="p-3 text-sm text-gray-500">{user.username}</td>
                                     <td className="p-3 text-sm text-gray-700">
                                         <span className={`p-1.5 text-xs font-medium uppercase tracking-wider rounded-lg ${user.role === Role.Manager ? 'bg-blue-200 text-blue-800' : 'bg-green-200 text-green-800'}`}>
                                             {user.role}
                                         </span>
+                                    </td>
+                                    <td className="p-3 text-sm">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {user.active !== false ? 'Ativo' : 'Desativado'}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-sm">
+                                        <button
+                                            onClick={() => handleToggleStatus(user.id as string, user.active !== false)}
+                                            className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                                                user.active !== false 
+                                                    ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                            }`}
+                                        >
+                                            {user.active !== false ? 'Desativar' : 'Ativar'}
+                                        </button>
                                     </td>
                                 </tr>
                             ))}

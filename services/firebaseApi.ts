@@ -1,6 +1,8 @@
 import { 
   signInWithEmailAndPassword, 
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { 
   collection, 
@@ -12,7 +14,8 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  setDoc
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { User, Item, StockMovement, MovementType, Role } from '../types';
@@ -20,6 +23,7 @@ import { User, Item, StockMovement, MovementType, Role } from '../types';
 // Collections
 const ITEMS_COLLECTION = 'items';
 const MOVEMENTS_COLLECTION = 'movements';
+const USERS_COLLECTION = 'users';
 
 // ============================================
 // AUTHENTICATION
@@ -32,9 +36,28 @@ export async function apiLogin(username: string, password: string): Promise<User
     
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
-    // Determine role based on email/username
-    // gestor@gestao-estoque.local or username 'gestor' = Manager
-    // others = Collaborator
+    // Get user data from Firestore
+    const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      
+      // Verificar se o usuário está ativo
+      if (userData.active === false) {
+        await firebaseSignOut(auth);
+        throw new Error('Usuário desativado. Entre em contato com o administrador.');
+      }
+      
+      return {
+        id: userDoc.id,
+        name: userData.name,
+        username: userData.username,
+        role: userData.role,
+        active: userData.active ?? true
+      } as User;
+    }
+    
+    // Fallback for backward compatibility (users without Firestore doc)
     const isManager = username.toLowerCase() === 'gestor' || 
                       email.toLowerCase().includes('gestor');
     
@@ -43,9 +66,13 @@ export async function apiLogin(username: string, password: string): Promise<User
       name: isManager ? 'Admin Gestor' : 'Colaborador',
       username: username,
       role: isManager ? Role.Manager : Role.Collaborator,
+      active: true
     } as User;
   } catch (error: any) {
     console.error('Login error:', error);
+    if (error.message.includes('desativado')) {
+      throw error;
+    }
     throw new Error('Usuário ou senha inválidos');
   }
 }
@@ -55,20 +82,89 @@ export async function apiSignOut(): Promise<void> {
 }
 
 // ============================================
-// USERS (Gerenciamento via Firebase Authentication Console)
+// USERS (Gerenciamento completo com Auth + Firestore)
 // ============================================
 
 export async function apiGetUsers(): Promise<User[]> {
-  // Nota: Usuários são gerenciados via Firebase Authentication Console
-  // Esta função retorna lista vazia pois não armazenamos users no Firestore
-  console.warn('User management deve ser feito via Firebase Console Authentication');
-  return [];
+  try {
+    const usersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
+    return usersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as User));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return [];
+  }
 }
 
 export async function apiAddUser(user: Partial<User>): Promise<User> {
-  // Nota: Para adicionar usuários, use o Firebase Console:
-  // Authentication → Users → Add user
-  throw new Error('Adicione usuários via Firebase Console: Authentication → Users → Add user');
+  try {
+    if (!user.username || !user.password || !user.name) {
+      throw new Error('Nome, usuário e senha são obrigatórios');
+    }
+
+    // Criar usuário no Firebase Authentication
+    const email = user.username.includes('@') 
+      ? user.username 
+      : `${user.username}@gestao-estoque.local`;
+    
+    const userCredential = await createUserWithEmailAndPassword(
+      auth, 
+      email, 
+      user.password
+    );
+
+    // Atualizar nome no perfil do Auth
+    await updateProfile(userCredential.user, {
+      displayName: user.name
+    });
+
+    // Criar documento no Firestore
+    const newUser = {
+      name: user.name,
+      username: user.username,
+      role: user.role || Role.Collaborator,
+      active: true,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+
+    await setDoc(doc(db, USERS_COLLECTION, userCredential.user.uid), newUser);
+
+    return {
+      id: userCredential.user.uid,
+      ...newUser
+    } as User;
+  } catch (error: any) {
+    console.error('Error adding user:', error);
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error('Este usuário já existe');
+    }
+    throw new Error('Erro ao criar usuário: ' + error.message);
+  }
+}
+
+export async function apiUpdateUser(userId: string, updates: Partial<User>): Promise<void> {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      ...updates,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw new Error('Erro ao atualizar usuário');
+  }
+}
+
+export async function apiToggleUserStatus(userId: string, active: boolean): Promise<void> {
+  try {
+    await apiUpdateUser(userId, { active });
+  } catch (error) {
+    console.error('Error toggling user status:', error);
+    throw new Error('Erro ao alterar status do usuário');
+  }
 }
 
 // ============================================

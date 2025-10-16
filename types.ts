@@ -10,6 +10,7 @@ export interface User {
   username: string;
   password?: string; // Should not be sent to frontend in real app
   role: Role;
+  active?: boolean; // Status do usuário (ativo/desativado)
 }
 
 export interface Item {
