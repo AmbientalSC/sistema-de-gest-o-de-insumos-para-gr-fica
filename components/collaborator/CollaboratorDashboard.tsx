@@ -106,9 +106,36 @@ const CollaboratorDashboard: React.FC = () => {
                 const html5QrCode = new window.Html5Qrcode(readerElementId);
                 scannerRef.current = html5QrCode;
                 
+                // Configurações otimizadas para códigos de barras
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 300, height: 150 }, // Retangular para códigos de barras
+                    aspectRatio: 2.0, // Proporção horizontal para barcode
+                    disableFlip: false,
+                    // Formatos suportados - foco em códigos de barras
+                    formatsToSupport: [
+                        window.Html5Qrcode.SCAN_TYPE_CODE_128,
+                        window.Html5Qrcode.SCAN_TYPE_CODE_39,
+                        window.Html5Qrcode.SCAN_TYPE_EAN_13,
+                        window.Html5Qrcode.SCAN_TYPE_EAN_8,
+                        window.Html5Qrcode.SCAN_TYPE_UPC_A,
+                        window.Html5Qrcode.SCAN_TYPE_UPC_E,
+                        window.Html5Qrcode.SCAN_TYPE_ITF,
+                    ]
+                };
+                
+                const cameraConfig = { 
+                    facingMode: "environment",
+                    // Configurações de câmera para melhor leitura
+                    advanced: [
+                        { focusMode: "continuous" },
+                        { zoom: 1.0 }
+                    ]
+                };
+                
                 html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    cameraConfig,
+                    config,
                     async (decodedText: string) => {
                         try {
                             stopScanner();
@@ -123,7 +150,7 @@ const CollaboratorDashboard: React.FC = () => {
                     (errorMessage: string) => { /* ignore errors */ }
                 ).catch((err: any) => {
                     console.error("Unable to start scanning.", err);
-                    setScanError("Não foi possível iniciar a câmera.");
+                    setScanError("Não foi possível iniciar a câmera. Verifique as permissões.");
                     setIsScanning(false);
                 });
             }, 100);
