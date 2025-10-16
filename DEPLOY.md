@@ -42,9 +42,12 @@ Este comando irá:
 1. Acesse o repositório no GitHub
 2. Vá em **Settings** → **Pages**
 3. Em **Source**, selecione:
-   - Branch: `gh-pages`
+   - Branch: **`gh-pages`** ⭐ (NÃO use `main`)
    - Folder: `/ (root)`
 4. Clique em **Save**
+
+> ⚠️ **Importante:** Use a branch `gh-pages` (não `main`)!  
+> O comando `npm run deploy` cria/atualiza automaticamente esta branch com os arquivos compilados.
 
 ## Passo 5: Acessar o Site
 
