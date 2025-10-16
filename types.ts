@@ -5,7 +5,7 @@ export enum Role {
 }
 
 export interface User {
-  id: number;
+  id: number | string;
   name: string;
   username: string;
   password?: string; // Should not be sent to frontend in real app
@@ -13,7 +13,7 @@ export interface User {
 }
 
 export interface Item {
-  id: number;
+  id: number | string;
   name: string;
   barcode: string;
   description: string;
@@ -30,10 +30,10 @@ export enum MovementType {
 }
 
 export interface StockMovement {
-  id: number;
-  itemId: number;
+  id: number | string;
+  itemId: number | string;
   itemName: string;
-  userId: number;
+  userId: number | string;
   userName: string;
   type: MovementType;
   quantity: number;
