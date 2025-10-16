@@ -1,0 +1,7 @@
+{
+  "name": "Sistema de Gestão de Insumos para Gráfica",
+  "description": "Um sistema para gerenciar o estoque de insumos de uma gráfica, com controle de estoque, perfis de usuário e baixa de itens via escaneamento de código de barras.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
