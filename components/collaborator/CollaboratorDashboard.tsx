@@ -106,12 +106,31 @@ const CollaboratorDashboard: React.FC = () => {
                 const html5QrCode = new window.Html5Qrcode(readerElementId);
                 scannerRef.current = html5QrCode;
                 
-                // Configurações otimizadas para códigos de barras
+                // Configurações otimizadas para códigos de barras pequenos em celular
                 const config = {
-                    fps: 10,
-                    qrbox: 250, // Área de leitura quadrada menor
-                    aspectRatio: 1.0,
+                    fps: 20, // Aumentar fps para melhor detecção
+                    qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+                        // Área adaptativa - 80% da menor dimensão
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        const qrboxSize = Math.floor(minEdge * 0.8);
+                        return {
+                            width: qrboxSize,
+                            height: Math.floor(qrboxSize * 0.6) // Retangular para barcode
+                        };
+                    },
+                    aspectRatio: 1.777778, // 16:9 - padrão de câmeras mobile
                     disableFlip: false,
+                    videoConstraints: {
+                        facingMode: "environment",
+                        // Solicitar resolução alta para códigos pequenos
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        // Foco e zoom para melhor leitura
+                        advanced: [
+                            { focusMode: "continuous" },
+                            { zoom: 2.0 } // Zoom 2x para códigos pequenos
+                        ]
+                    }
                 };
                 
                 html5QrCode.start(
@@ -186,6 +205,17 @@ const CollaboratorDashboard: React.FC = () => {
                          <button onClick={stopScanner} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-3 rounded-lg font-bold">
                             Cancelar
                          </button>
+                         
+                         {/* Dicas de uso */}
+                         <div className="absolute top-4 left-0 right-0 px-4">
+                             <div className="bg-black bg-opacity-70 text-white text-sm p-3 rounded-lg text-center">
+                                 <p className="font-semibold mb-1">📱 Dicas para melhor leitura:</p>
+                                 <p>• Mantenha distância de 10-20cm</p>
+                                 <p>• Certifique-se de ter boa iluminação</p>
+                                 <p>• Mantenha o celular firme e paralelo</p>
+                                 <p>• Para códigos pequenos, aproxime devagar</p>
+                             </div>
+                         </div>
                     </div>
                 ) : (
                     <div className="text-center">
