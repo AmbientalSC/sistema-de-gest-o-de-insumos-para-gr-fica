@@ -1,8 +1,6 @@
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  User as FirebaseUser
+  signOut as firebaseSignOut
 } from 'firebase/auth';
 import { 
   collection, 
@@ -10,19 +8,16 @@ import {
   getDoc, 
   getDocs, 
   addDoc, 
-  updateDoc, 
-  deleteDoc,
+  updateDoc,
   query,
   where,
   orderBy,
-  Timestamp,
-  setDoc
+  Timestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { User, Item, StockMovement, MovementType, Role } from '../types';
 
 // Collections
-const USERS_COLLECTION = 'users';
 const ITEMS_COLLECTION = 'items';
 const MOVEMENTS_COLLECTION = 'movements';
 
@@ -37,19 +32,17 @@ export async function apiLogin(username: string, password: string): Promise<User
     
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
-    // Get user data from Firestore
-    const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
+    // Determine role based on email/username
+    // gestor@gestao-estoque.local or username 'gestor' = Manager
+    // others = Collaborator
+    const isManager = username.toLowerCase() === 'gestor' || 
+                      email.toLowerCase().includes('gestor');
     
-    if (!userDoc.exists()) {
-      throw new Error('Dados do usuário não encontrados');
-    }
-    
-    const userData = userDoc.data();
     return {
       id: userCredential.user.uid,
-      name: userData.name,
-      username: userData.username,
-      role: userData.role as Role,
+      name: isManager ? 'Admin Gestor' : 'Colaborador',
+      username: username,
+      role: isManager ? Role.Manager : Role.Collaborator,
     } as User;
   } catch (error: any) {
     console.error('Login error:', error);
@@ -62,48 +55,20 @@ export async function apiSignOut(): Promise<void> {
 }
 
 // ============================================
-// USERS
+// USERS (Gerenciamento via Firebase Authentication Console)
 // ============================================
 
 export async function apiGetUsers(): Promise<User[]> {
-  const usersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
-  return usersSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as User));
+  // Nota: Usuários são gerenciados via Firebase Authentication Console
+  // Esta função retorna lista vazia pois não armazenamos users no Firestore
+  console.warn('User management deve ser feito via Firebase Console Authentication');
+  return [];
 }
 
 export async function apiAddUser(user: Partial<User>): Promise<User> {
-  try {
-    // Create user in Firebase Auth
-    const email = user.username!.includes('@') 
-      ? user.username! 
-      : `${user.username}@gestao-estoque.local`;
-    
-    const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      email, 
-      user.password || '1234'
-    );
-    
-    // Store user data in Firestore
-    const userData = {
-      name: user.name || 'Novo Usuário',
-      username: user.username || `user${Date.now()}`,
-      role: user.role || Role.Collaborator,
-      createdAt: Timestamp.now()
-    };
-    
-    await setDoc(doc(db, USERS_COLLECTION, userCredential.user.uid), userData);
-    
-    return {
-      id: userCredential.user.uid,
-      ...userData
-    } as User;
-  } catch (error: any) {
-    console.error('Error adding user:', error);
-    throw new Error('Erro ao adicionar usuário');
-  }
+  // Nota: Para adicionar usuários, use o Firebase Console:
+  // Authentication → Users → Add user
+  throw new Error('Adicione usuários via Firebase Console: Authentication → Users → Add user');
 }
 
 // ============================================

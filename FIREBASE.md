@@ -23,13 +23,9 @@ O Firebase já está configurado no projeto com:
 
 ### 2️⃣ Criar Usuários Iniciais
 
-Você tem duas opções:
+No Firebase Console, vá em **Authentication** → **Users** → **Add user**
 
-#### Opção A: Criar Manualmente no Console (Recomendado)
-
-1. No Firebase Console, vá em **Authentication** → **Users**
-2. Clique em **Add user**
-3. Crie os usuários:
+Crie os seguintes usuários:
 
 **Gestor:**
 - Email: `gestor@gestao-estoque.local`
@@ -39,63 +35,27 @@ Você tem duas opções:
 - Email: `colab@gestao-estoque.local`
 - Password: `1234`
 
-4. Após criar os usuários no Authentication, vá em **Firestore Database**
-5. Crie uma collection chamada `users`
-6. Para cada usuário, crie um documento com o UID do Authentication:
+**Outros Colaboradores (opcional):**
+- Email: `[nome]@gestao-estoque.local`
+- Password: `[sua senha]`
 
-**Documento do Gestor** (use o UID do user criado):
-```json
-{
-  "name": "Admin Gestor",
-  "username": "gestor",
-  "role": "GESTOR",
-  "createdAt": [timestamp atual]
-}
-```
+**💡 Regra de Permissão:**
+- Usuários com username/email contendo **"gestor"** = Perfil GESTOR
+- Outros usuários = Perfil COLABORADOR
 
-**Documento do Colaborador** (use o UID do user criado):
-```json
-{
-  "name": "Colaborador Exemplo",
-  "username": "colab",
-  "role": "COLABORADOR",
-  "createdAt": [timestamp atual]
-}
-```
-
-#### Opção B: Usar Script de Inicialização
-
-*(Ainda não implementado - use a Opção A por enquanto)*
+**Nota:** Não é necessário criar documentos no Firestore para os usuários. O sistema usa apenas o Firebase Authentication!
 
 ### 3️⃣ Configurar Regras do Firestore
 
 1. Vá em **Firestore Database** → **Rules**
-2. Cole as seguintes regras:
+2. Cole as seguintes regras (permissões básicas):
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Usuários autenticados podem ler tudo
+    // Usuários autenticados podem ler e escrever
     match /{document=**} {
-      allow read: if request.auth != null;
-    }
-    
-    // Apenas gestores podem escrever em users
-    match /users/{userId} {
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'GESTOR';
-    }
-    
-    // Items - gestores podem escrever, todos podem ler
-    match /items/{itemId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'GESTOR';
-    }
-    
-    // Movements - todos autenticados podem escrever (para checkout)
-    match /movements/{movementId} {
       allow read, write: if request.auth != null;
     }
   }
@@ -103,6 +63,8 @@ service cloud.firestore {
 ```
 
 3. Clique em **Publish**
+
+**Nota:** Estas são regras básicas. Para produção, considere regras mais restritivas.
 
 ---
 
@@ -158,17 +120,6 @@ npm run deploy
 
 ## 📊 Collections do Firestore
 
-### `users`
-```typescript
-{
-  id: string (UID do Firebase Auth),
-  name: string,
-  username: string,
-  role: "GESTOR" | "COLABORADOR",
-  createdAt: Timestamp
-}
-```
-
 ### `items`
 ```typescript
 {
@@ -199,6 +150,8 @@ npm run deploy
   timestamp: Timestamp
 }
 ```
+
+**Nota:** A collection `users` não é mais necessária. Os usuários são gerenciados apenas pelo Firebase Authentication.
 
 ---
 
