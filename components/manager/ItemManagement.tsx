@@ -83,6 +83,18 @@ const ItemForm: React.FC<{
                         height: 150  // Mais estreito verticalmente
                     },
                     aspectRatio: 1.777778, // 16:9 para câmera
+                    formatsToSupport: [
+                        // Formatos de códigos de barras (produtos)
+                        0,  // CODE_128
+                        1,  // CODE_39
+                        2,  // CODE_93
+                        3,  // CODABAR
+                        7,  // EAN_13 (padrão brasileiro)
+                        8,  // EAN_8
+                        11, // UPC_A (padrão americano)
+                        12, // UPC_E
+                        13, // UPC_EAN_EXTENSION
+                    ]
                 };
                 
                 html5QrCode.start(
