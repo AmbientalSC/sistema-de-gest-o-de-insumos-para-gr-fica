@@ -89,6 +89,17 @@ const ItemForm: React.FC<{
             streamTrackRef.current = null;
             setTorchOn(false);
         }
+        // limpar possíveis transforms aplicados ao vídeo/canvas fallback
+        try {
+            const container = document.getElementById(readerElementId);
+            const video = container?.querySelector('video') as HTMLElement | null;
+            const canvas = container?.querySelector('canvas') as HTMLElement | null;
+            const target = video || canvas || container;
+            if (target) {
+                (target as HTMLElement).style.transform = '';
+                (target as HTMLElement).style.transformOrigin = '';
+            }
+        } catch (e) { /* ignore */ }
         setIsScanning(false);
     }, []);
 
@@ -261,7 +272,8 @@ const ItemForm: React.FC<{
                     <div className="mb-4">
                         <div className="rounded-lg overflow-hidden">
                             <div className={`w-full bg-gray-800 ${isWebcam ? 'h-64' : 'aspect-square'} relative z-0`}>
-                                <div id={readerElementId} className="w-full h-full" />
+                                {/* container with overflow-hidden so scaled video is clipped and doesn't resize the card */}
+                                <div id={readerElementId} className="w-full h-full overflow-hidden flex items-center justify-center" />
 
                                 {scanSuccess && (
                                     <div className="absolute inset-0 bg-green-500 bg-opacity-95 flex flex-col items-center justify-center text-white z-10 animate-pulse">
@@ -296,8 +308,16 @@ const ItemForm: React.FC<{
                                                         if (caps.zoom) {
                                                             try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { }
                                                         } else {
-                                                            const el = document.getElementById(readerElementId);
-                                                            if (el) (el as HTMLElement).style.transform = `scale(${v})`;
+                                                            // fallback: scale only the inner video or canvas so the modal/card size doesn't change
+                                                            const container = document.getElementById(readerElementId);
+                                                            const video = container?.querySelector('video') as HTMLElement | null;
+                                                            const canvas = container?.querySelector('canvas') as HTMLElement | null;
+                                                            const target = video || canvas || container;
+                                                            if (target) {
+                                                                (target as HTMLElement).style.transform = `scale(${v})`;
+                                                                (target as HTMLElement).style.transformOrigin = 'center center';
+                                                                (target as HTMLElement).style.transition = 'transform 0.08s linear';
+                                                            }
                                                         }
                                                     }
                                                 }}
