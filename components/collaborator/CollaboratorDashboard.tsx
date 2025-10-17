@@ -45,7 +45,7 @@ const CheckoutModal: React.FC<{
                 <p className="text-gray-600 mb-4 text-gray-900">Estoque atual: {item.quantity} {item.unitOfMeasure}</p>
                 <div className="my-6">
                     <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2 text-gray-900">
-                        Quantidade para dar baixa:
+                        Quantidade para saída:
                     </label>
                     <input
                         id="quantity"
@@ -69,7 +69,7 @@ const CheckoutModal: React.FC<{
                         disabled={isConfirming || current < 1 || current > item.quantity}
                         className="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300"
                     >
-                        {isConfirming ? 'Confirmando...' : 'Confirmar Baixa'}
+                        {isConfirming ? 'Confirmando...' : 'Confirmar Saída'}
                     </button>
                     <button
                         onClick={onClose}
@@ -89,7 +89,7 @@ const SuccessOverlay: React.FC<{ onDismiss: () => void; itemName?: string | null
     <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex flex-col justify-center items-center text-white z-50 p-4 text-center" onClick={onDismiss}>
         <CheckCircle className="w-24 h-24 mb-6" />
         <h2 className="text-4xl font-extrabold mb-4">Sucesso!</h2>
-        {itemName ? <p className="text-lg font-semibold">Baixa realizada: {itemName}</p> : <p className="text-lg">Baixa de estoque realizada.</p>}
+        {itemName ? <p className="text-lg font-semibold">Saída realizada: {itemName}</p> : <p className="text-lg">Saída de estoque realizada.</p>}
         <p className="mt-8 text-sm opacity-80">(Toque para continuar)</p>
     </div>
 );
@@ -281,7 +281,7 @@ const CollaboratorDashboard: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen bg-gray-900 text-white">
-            <Header title="Baixa de Insumo" userName={user.name} />
+            <Header title="Saída de Estoque" userName={user.name} />
             <main className="flex-grow flex flex-col items-center justify-center p-4">
 
                 {isScanning ? (
@@ -323,7 +323,7 @@ const CollaboratorDashboard: React.FC = () => {
                     <div className="text-center">
                         <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
                         <p className="text-gray-400 mb-8 max-w-xs mx-auto">
-                            Aponte a câmera para o código de barras do insumo para dar baixa no estoque.
+                            Aponte a câmera para o código de barras do produto para registrar saída do estoque.
                         </p>
                         <button
                             onClick={startScanner}
