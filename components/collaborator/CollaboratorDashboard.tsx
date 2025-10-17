@@ -40,11 +40,11 @@ const CheckoutModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center text-gray-900">
-                <h2 className="text-2xl font-bold mb-2">{item.name}</h2>
-                <p className="text-gray-600 mb-1">Localização: {item.location}</p>
-                <p className="text-gray-600 mb-4">Estoque atual: {item.quantity} {item.unitOfMeasure}</p>
+                <h2 className="text-2xl font-bold mb-2 text-gray-900">{item.name}</h2>
+                <p className="text-gray-600 mb-1 text-gray-900">Localização: {item.location}</p>
+                <p className="text-gray-600 mb-4 text-gray-900">Estoque atual: {item.quantity} {item.unitOfMeasure}</p>
                 <div className="my-6">
-                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2 text-gray-900">
                         Quantidade para dar baixa:
                     </label>
                     <input
@@ -173,8 +173,9 @@ const CollaboratorDashboard: React.FC = () => {
                                     if (caps.zoom) {
                                         const zmin = caps.zoom.min || 1;
                                         const zmax = caps.zoom.max || 1;
-                                        const mid = Math.min(zmax, Math.max(zmin, (zmin + zmax) / 2));
-                                        try { (track as any).applyConstraints({ advanced: [{ zoom: mid }] }); setZoom(mid); } catch (e) { }
+                                        // start at minimum zoom to avoid unexpected zoom-in behavior on start
+                                        const startZoom = zmin;
+                                        try { (track as any).applyConstraints({ advanced: [{ zoom: startZoom }] }); setZoom(startZoom); } catch (e) { }
                                     }
                                 } catch (e) { setTorchAvailable(false); }
                                 return;

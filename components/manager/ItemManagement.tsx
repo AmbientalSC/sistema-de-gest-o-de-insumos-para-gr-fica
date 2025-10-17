@@ -205,9 +205,9 @@ const ItemForm: React.FC<{
                                     if (caps.zoom && typeof caps.zoom === 'object') {
                                         const zmin = caps.zoom.min || 1;
                                         const zmax = caps.zoom.max || 1;
-                                        const mid = Math.min(zmax, Math.max(zmin, zmin + (zmax - zmin) / 2));
-                                        advanced.push({ zoom: mid });
-                                        setZoom(mid);
+                                        const startZoom = zmin;
+                                        advanced.push({ zoom: startZoom });
+                                        setZoom(startZoom);
                                     }
                                     if (advanced.length) {
                                         (track as any).applyConstraints({ advanced }).catch(() => { });
@@ -244,9 +244,9 @@ const ItemForm: React.FC<{
                             if (caps.zoom && typeof caps.zoom === 'object') {
                                 const zmin = caps.zoom.min || 1;
                                 const zmax = caps.zoom.max || 1;
-                                const mid = Math.min(zmax, Math.max(zmin, zmin + (zmax - zmin) / 2));
-                                advanced.push({ zoom: mid });
-                                setZoom(mid);
+                                const startZoom = zmin;
+                                advanced.push({ zoom: startZoom });
+                                setZoom(startZoom);
                             }
                             if (advanced.length) (track as any).applyConstraints({ advanced }).catch(() => { });
                         } catch (e) { }
