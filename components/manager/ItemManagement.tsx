@@ -37,7 +37,8 @@ const ItemForm: React.FC<{
     onClose: () => void;
     onSave: (item: Partial<Item>) => void;
 }> = ({ item, onClose, onSave }) => {
-    const [formData, setFormData] = useState<Partial<Item>>(item || {});
+    // armazenamos os campos numéricos como string para permitir edição livre (vazio, zeros etc.)
+    const [formData, setFormData] = useState<Partial<Item> & { quantity?: string | number; minQuantity?: string | number }>(item ? { ...item, quantity: item.quantity ?? '', minQuantity: item.minQuantity ?? '' } : { quantity: '', minQuantity: '' });
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanSuccess, setScanSuccess] = useState(false);
@@ -54,12 +55,21 @@ const ItemForm: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'quantity' || name === 'minQuantity' ? Number(value) : value }));
+        if (name === 'quantity' || name === 'minQuantity') {
+            // manter string enquanto digita
+            setFormData(prev => ({ ...prev, [name]: value }));
+            return;
+        }
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        // converter strings numéricas para number antes de salvar
+        const payload: any = { ...formData };
+        if (typeof payload.quantity === 'string') payload.quantity = payload.quantity === '' ? 0 : Number(payload.quantity);
+        if (typeof payload.minQuantity === 'string') payload.minQuantity = payload.minQuantity === '' ? 0 : Number(payload.minQuantity);
+        onSave(payload);
     };
 
     const stopScanner = useCallback(() => {
@@ -245,7 +255,7 @@ const ItemForm: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <h2 className="text-2xl font-bold mb-4">{item?.id ? 'Editar Item' : 'Adicionar Novo Insumo'}</h2>
+                <h2 className="text-2xl font-bold mb-4">{item?.id ? 'Editar Item' : 'Cadastrar Insumo'}</h2>
 
                 {isScanning ? (
                     <div className="mb-4">
@@ -338,8 +348,14 @@ const ItemForm: React.FC<{
                             <option>Litro</option>
                         </select>
                         <div className="flex space-x-4">
-                            <input type="number" name="quantity" value={formData.quantity || 0} onChange={handleChange} placeholder="Quantidade Atual" className="w-1/2 p-2 border rounded" required />
-                            <input type="number" name="minQuantity" value={formData.minQuantity || 0} onChange={handleChange} placeholder="Quantidade Mínima" className="w-1/2 p-2 border rounded" required />
+                            <div className="w-1/2">
+                                <label htmlFor="quantity" className="text-sm font-medium text-gray-700 block mb-1">Quant. Atual</label>
+                                <input id="quantity" type="number" name="quantity" value={typeof formData.quantity === 'number' ? formData.quantity : (formData.quantity || '')} onChange={handleChange} placeholder="Quant. Atual" className="w-full p-2 border rounded" required />
+                            </div>
+                            <div className="w-1/2">
+                                <label htmlFor="minQuantity" className="text-sm font-medium text-gray-700 block mb-1">Quant. Mínima</label>
+                                <input id="minQuantity" type="number" name="minQuantity" value={typeof formData.minQuantity === 'number' ? formData.minQuantity : (formData.minQuantity || '')} onChange={handleChange} placeholder="Quant. Mínima" className="w-full p-2 border rounded" required />
+                            </div>
                         </div>
                         <input name="supplier" value={formData.supplier || ''} onChange={handleChange} placeholder="Fornecedor (Opcional)" className="w-full p-2 border rounded" />
                         <input name="location" value={formData.location || ''} onChange={handleChange} placeholder="Localização" className="w-full p-2 border rounded" required />
