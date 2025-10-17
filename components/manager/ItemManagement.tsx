@@ -422,6 +422,7 @@ const AddStockForm: React.FC<{
 
 const ItemManagement: React.FC = () => {
     const [items, setItems] = useState<Item[]>([]);
+    const [filter, setFilter] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isStockFormOpen, setIsStockFormOpen] = useState(false);
@@ -461,6 +462,14 @@ const ItemManagement: React.FC = () => {
     const openAddForm = () => { setEditingItem({}); setIsFormOpen(true); };
     const openStockForm = (item: Item) => { setStockItem(item); setIsStockFormOpen(true); };
 
+    const filteredItems = items.filter(i => {
+        if (!filter) return true;
+        const f = filter.trim().toLowerCase();
+        return (i.name || '').toLowerCase().includes(f)
+            || (i.barcode || '').toLowerCase().includes(f)
+            || (i.location || '').toLowerCase().includes(f);
+    });
+
     return (
         <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4">
@@ -469,6 +478,16 @@ const ItemManagement: React.FC = () => {
                     <PlusCircle className="w-5 h-5" />
                     <span>Adicionar Insumo</span>
                 </button>
+            </div>
+
+            <div className="mb-4">
+                <input
+                    type="search"
+                    value={filter}
+                    onChange={e => setFilter(e.target.value)}
+                    placeholder="Procurar insumo por nome, código ou localização..."
+                    className="w-full p-2 border rounded"
+                />
             </div>
 
             {isLoading ? <p>Carregando...</p> : (
@@ -484,7 +503,7 @@ const ItemManagement: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map(item => <ItemRow key={item.id} item={item} onAddStock={openStockForm} onEdit={openEditForm} />)}
+                            {filteredItems.map(item => <ItemRow key={item.id} item={item} onAddStock={openStockForm} onEdit={openEditForm} />)}
                         </tbody>
                     </table>
                 </div>

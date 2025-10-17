@@ -18,7 +18,8 @@ const CheckoutModal: React.FC<{
     onConfirm: (itemId: number, quantity: number) => Promise<void>;
 }> = ({ item, onClose, onConfirm }) => {
     // usar string no input para permitir edição natural no mobile
-    const [quantityStr, setQuantityStr] = useState<string>('1');
+    // começar vazio para que o usuário possa digitar sem um '1' pré-preenchido
+    const [quantityStr, setQuantityStr] = useState<string>('');
     const [isConfirming, setIsConfirming] = useState(false);
 
     const numeric = (q: string) => {
@@ -51,6 +52,7 @@ const CheckoutModal: React.FC<{
                         inputMode="numeric"
                         pattern="[0-9]*"
                         value={quantityStr}
+                        placeholder="1"
                         onChange={(e) => {
                             // manter apenas dígitos
                             const cleaned = (e.target.value || '').replace(/[^0-9]/g, '');
