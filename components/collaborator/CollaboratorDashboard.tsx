@@ -86,6 +86,11 @@ const CollaboratorDashboard: React.FC = () => {
     const [scanError, setScanError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const scannerRef = useRef<any>(null);
+    const streamTrackRef = useRef<MediaStreamTrack | null>(null);
+    const [torchOn, setTorchOn] = useState(false);
+    const [torchAvailable, setTorchAvailable] = useState(false);
+    const [zoom, setZoom] = useState<number>(1);
+    const [isWebcam, setIsWebcam] = useState(false);
     const readerElementId = "qr-reader";
 
     const startScanner = useCallback(() => {
@@ -125,6 +130,7 @@ const CollaboratorDashboard: React.FC = () => {
                             const chosen = rear || devices[0];
                             const cameraId = chosen ? chosen.id : undefined;
                             if (cameraId) {
+                                setIsWebcam(/front|user|integrated|webcam|logitech|camera|usb/i.test((chosen && chosen.label) || ''));
                                 await html5QrCode.start(
                                     cameraId,
                                     config,
@@ -141,6 +147,19 @@ const CollaboratorDashboard: React.FC = () => {
                                     },
                                     (errorMessage: string) => { /* ignore frame errors */ }
                                 );
+                                try {
+                                    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: cameraId }, width: { ideal: 1280 }, height: { ideal: 720 } } as any });
+                                    const track = stream.getVideoTracks()[0];
+                                    streamTrackRef.current = track;
+                                    const caps = (track.getCapabilities && (track.getCapabilities() as any)) || {};
+                                    setTorchAvailable(!!caps.torch);
+                                    if (caps.zoom) {
+                                        const zmin = caps.zoom.min || 1;
+                                        const zmax = caps.zoom.max || 1;
+                                        const mid = Math.min(zmax, Math.max(zmin, (zmin + zmax) / 2));
+                                        try { (track as any).applyConstraints({ advanced: [{ zoom: mid }] }); setZoom(mid); } catch (e) { }
+                                    }
+                                } catch (e) { setTorchAvailable(false); }
                                 return;
                             }
                         }
@@ -163,7 +182,7 @@ const CollaboratorDashboard: React.FC = () => {
                             }
                         },
                         (errorMessage: string) => { /* ignore errors */ }
-                    ).catch((err: any) => {
+                    ).catch(async (err: any) => {
                         console.error("Unable to start scanning.", err);
                         setScanError("Não foi possível iniciar a câmera. Verifique as permissões.");
                         setIsScanning(false);
@@ -178,6 +197,29 @@ const CollaboratorDashboard: React.FC = () => {
             }, 100);
         }
     }, [isScanning]);
+
+    const captureFrame = useCallback(() => {
+        const el = document.getElementById(readerElementId);
+        if (!el) return;
+        const video = el.querySelector('video') as HTMLVideoElement | null;
+        const canvas = document.createElement('canvas');
+        if (video && video.readyState >= 2) {
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            if (ctx) { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); window.open(canvas.toDataURL('image/png'), '_blank'); return; }
+        }
+        const inner = el.querySelector('canvas') as HTMLCanvasElement | null;
+        if (inner) { try { window.open(inner.toDataURL('image/png'), '_blank'); return; } catch (e) { } }
+    }, []);
+
+    const toggleTorch = useCallback(async () => {
+        const t = streamTrackRef.current as any;
+        if (!t) return;
+        const caps = (t.getCapabilities && (t.getCapabilities() as any)) || {};
+        if (!caps.torch) return;
+        try { await t.applyConstraints({ advanced: [{ torch: !torchOn }] }); setTorchOn(v => !v); } catch (err) { console.warn('torch toggle failed', err); }
+    }, [torchOn]);
 
     const stopScanner = useCallback(() => {
         if (scannerRef.current && isScanning) {
@@ -222,11 +264,39 @@ const CollaboratorDashboard: React.FC = () => {
             <main className="flex-grow flex flex-col items-center justify-center p-4">
 
                 {isScanning ? (
-                    <div className="w-full max-w-md aspect-square bg-gray-800 rounded-lg overflow-hidden relative">
-                        <div id={readerElementId} className="w-full h-full" />
-                        <button onClick={stopScanner} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-3 rounded-lg font-bold">
-                            Cancelar
-                        </button>
+                    <div className="w-full max-w-md bg-gray-800 rounded-lg overflow-hidden relative">
+                        <div className={`w-full ${isWebcam ? 'h-64' : 'aspect-square'} relative z-0`}>
+                            <div id={readerElementId} className="w-full h-full overflow-hidden flex items-center justify-center" />
+                        </div>
+
+                        {/* Painel de controles fora do vídeo */}
+                        <div className="bg-gray-900 px-4 py-3 flex items-center gap-3">
+                            <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
+                            <div className="flex items-center gap-2 text-sm text-gray-200">
+                                <span>Zoom</span>
+                                <input type="range" min={1} max={4} step={0.1} value={zoom} onChange={e => {
+                                    const v = Number(e.target.value);
+                                    setZoom(v);
+                                    const track = streamTrackRef.current;
+                                    if (track) {
+                                        const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
+                                        if (caps.zoom) { try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { } }
+                                        else {
+                                            const container = document.getElementById(readerElementId);
+                                            const video = container?.querySelector('video') as HTMLElement | null;
+                                            const canvas = container?.querySelector('canvas') as HTMLElement | null;
+                                            const target = video || canvas || container;
+                                            if (target) { (target as HTMLElement).style.transform = `scale(${v})`; (target as HTMLElement).style.transformOrigin = 'center center'; }
+                                        }
+                                    }
+                                }} className="w-36" />
+                            </div>
+                            {torchAvailable && <button onClick={toggleTorch} className="bg-yellow-400 text-black px-3 py-2 rounded-md font-semibold">{torchOn ? 'Lanterna On' : 'Lanterna'}</button>}
+
+                            <div className="ml-auto">
+                                <button onClick={stopScanner} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold">Cancelar</button>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="text-center">
