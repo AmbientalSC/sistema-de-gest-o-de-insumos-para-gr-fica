@@ -17,18 +17,28 @@ const CheckoutModal: React.FC<{
     onClose: () => void;
     onConfirm: (itemId: number, quantity: number) => Promise<void>;
 }> = ({ item, onClose, onConfirm }) => {
-    const [quantity, setQuantity] = useState(1);
+    // usar string no input para permitir edição natural no mobile
+    const [quantityStr, setQuantityStr] = useState<string>('1');
     const [isConfirming, setIsConfirming] = useState(false);
 
+    const numeric = (q: string) => {
+        const n = Number(q);
+        return Number.isNaN(n) ? 0 : Math.max(0, Math.floor(n));
+    };
+
     const handleConfirm = async () => {
+        const q = numeric(quantityStr);
+        if (q < 1) return;
         setIsConfirming(true);
-        await onConfirm(item.id, quantity);
+        await onConfirm(item.id, q);
         // The parent will close the modal on success
     };
 
+    const current = numeric(quantityStr);
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center text-gray-900">
                 <h2 className="text-2xl font-bold mb-2">{item.name}</h2>
                 <p className="text-gray-600 mb-1">Localização: {item.location}</p>
                 <p className="text-gray-600 mb-4">Estoque atual: {item.quantity} {item.unitOfMeasure}</p>
@@ -38,19 +48,23 @@ const CheckoutModal: React.FC<{
                     </label>
                     <input
                         id="quantity"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                        min="1"
-                        max={item.quantity}
-                        className="w-32 text-center p-2 border border-gray-300 rounded-md text-lg"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={quantityStr}
+                        onChange={(e) => {
+                            // manter apenas dígitos
+                            const cleaned = (e.target.value || '').replace(/[^0-9]/g, '');
+                            // permitir string vazia enquanto digita
+                            setQuantityStr(cleaned);
+                        }}
+                        className="w-32 text-center p-2 border border-gray-300 rounded-md text-lg text-black"
                         autoFocus
                     />
                 </div>
                 <div className="flex flex-col space-y-3">
                     <button
                         onClick={handleConfirm}
-                        disabled={isConfirming || quantity > item.quantity}
+                        disabled={isConfirming || current < 1 || current > item.quantity}
                         className="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300"
                     >
                         {isConfirming ? 'Confirmando...' : 'Confirmar Baixa'}
@@ -62,7 +76,7 @@ const CheckoutModal: React.FC<{
                     >
                         Cancelar
                     </button>
-                    {quantity > item.quantity && <p className="text-red-500 text-sm mt-2">Quantidade indisponível em estoque.</p>}
+                    {current > item.quantity && <p className="text-red-500 text-sm mt-2">Quantidade indisponível em estoque.</p>}
                 </div>
             </div>
         </div>
@@ -249,13 +263,14 @@ const CollaboratorDashboard: React.FC = () => {
         setSuccessItemName(scannedItem ? scannedItem.name : null);
         setScannedItem(null);
         setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000); // Auto-dismiss success message
+        setTimeout(() => { setShowSuccess(false); setSuccessItemName(null); }, 3000); // Auto-dismiss success message
     };
 
     const reset = () => {
         setScannedItem(null);
         setShowSuccess(false);
         setScanError(null);
+        setSuccessItemName(null);
         stopScanner();
     }
 
@@ -320,7 +335,7 @@ const CollaboratorDashboard: React.FC = () => {
             </main>
 
             {scannedItem && <CheckoutModal item={scannedItem} onClose={reset} onConfirm={handleCheckout} />}
-            {showSuccess && <SuccessOverlay onDismiss={reset} />}
+            {showSuccess && <SuccessOverlay onDismiss={reset} itemName={successItemName} />}
         </div>
     );
 };
