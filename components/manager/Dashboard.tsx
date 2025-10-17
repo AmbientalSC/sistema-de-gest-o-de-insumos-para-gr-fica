@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
             const dayMoves = recentMovements.filter(m => new Date(m.timestamp).getTime() >= dayStart && new Date(m.timestamp).getTime() < dayEnd);
             const ins = dayMoves.filter(m => m.type === MovementType.In).reduce((s, m) => s + m.quantity, 0);
             const outs = dayMoves.filter(m => m.type !== MovementType.In).reduce((s, m) => s + m.quantity, 0);
-            return { date: d.toLocaleDateString(), in: ins, out: outs };
+            return { date: d.toLocaleDateString(), entrada: ins, saida: outs };
         });
     }, [recentMovements, periodDays]);
 
@@ -121,8 +121,8 @@ const Dashboard: React.FC = () => {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Line type="monotone" dataKey="in" stroke="#10b981" strokeWidth={2} />
-                                <Line type="monotone" dataKey="out" stroke="#ef4444" strokeWidth={2} />
+                                <Line type="monotone" dataKey="entrada" stroke="#10b981" strokeWidth={2} />
+                                <Line type="monotone" dataKey="saida" stroke="#ef4444" strokeWidth={2} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>

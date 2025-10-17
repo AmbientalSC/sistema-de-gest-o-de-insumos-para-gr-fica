@@ -462,13 +462,21 @@ const ItemManagement: React.FC = () => {
     const openAddForm = () => { setEditingItem({}); setIsFormOpen(true); };
     const openStockForm = (item: Item) => { setStockItem(item); setIsStockFormOpen(true); };
 
-    const filteredItems = items.filter(i => {
-        if (!filter) return true;
-        const f = filter.trim().toLowerCase();
-        return (i.name || '').toLowerCase().includes(f)
-            || (i.barcode || '').toLowerCase().includes(f)
-            || (i.location || '').toLowerCase().includes(f);
-    });
+    const filteredItems = items
+        .filter(i => {
+            if (!filter) return true;
+            const f = filter.trim().toLowerCase();
+            return (i.name || '').toLowerCase().includes(f)
+                || (i.barcode || '').toLowerCase().includes(f)
+                || (i.location || '').toLowerCase().includes(f);
+        })
+        .slice() // make a shallow copy before sorting
+        .sort((a, b) => {
+            const aLow = (Number(a.quantity) || 0) <= (Number(a.minQuantity) || 0) ? 0 : 1;
+            const bLow = (Number(b.quantity) || 0) <= (Number(b.minQuantity) || 0) ? 0 : 1;
+            if (aLow !== bLow) return aLow - bLow; // low-stock first
+            return (a.name || '').localeCompare(b.name || ''); // stable secondary sort by name
+        });
 
     return (
         <div className="bg-white p-6 rounded-lg shadow">
