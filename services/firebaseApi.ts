@@ -1,15 +1,15 @@
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
   updateDoc,
   query,
   where,
@@ -33,21 +33,21 @@ export async function apiLogin(username: string, password: string): Promise<User
   try {
     // Convert username to email format for Firebase Auth
     const email = username.includes('@') ? username : `${username}@gestao-estoque.local`;
-    
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    
+
     // Get user data from Firestore
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
-    
+
     if (userDoc.exists()) {
       const userData = userDoc.data();
-      
+
       // Verificar se o usuário está ativo
       if (userData.active === false) {
         await firebaseSignOut(auth);
         throw new Error('Usuário desativado. Entre em contato com o administrador.');
       }
-      
+
       return {
         id: userDoc.id,
         name: userData.name,
@@ -56,11 +56,11 @@ export async function apiLogin(username: string, password: string): Promise<User
         active: userData.active ?? true
       } as User;
     }
-    
+
     // Fallback for backward compatibility (users without Firestore doc)
-    const isManager = username.toLowerCase() === 'gestor' || 
-                      email.toLowerCase().includes('gestor');
-    
+    const isManager = username.toLowerCase() === 'gestor' ||
+      email.toLowerCase().includes('gestor');
+
     return {
       id: userCredential.user.uid,
       name: isManager ? 'Admin Gestor' : 'Colaborador',
@@ -105,13 +105,13 @@ export async function apiAddUser(user: Partial<User>): Promise<User> {
     }
 
     // Criar usuário no Firebase Authentication
-    const email = user.username.includes('@') 
-      ? user.username 
+    const email = user.username.includes('@')
+      ? user.username
       : `${user.username}@gestao-estoque.local`;
-    
+
     const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      email, 
+      auth,
+      email,
       user.password
     );
 
@@ -173,10 +173,15 @@ export async function apiToggleUserStatus(userId: string, active: boolean): Prom
 
 export async function apiGetItems(): Promise<Item[]> {
   const itemsSnapshot = await getDocs(collection(db, ITEMS_COLLECTION));
-  return itemsSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as Item));
+  return itemsSnapshot.docs.map(doc => {
+    const data: any = doc.data();
+    return ({
+      id: doc.id,
+      ...data,
+      quantity: Number(data.quantity) || 0,
+      minQuantity: Number(data.minQuantity) || 0
+    } as Item);
+  });
 }
 
 export async function apiAddItem(item: Partial<Item>): Promise<Item> {
@@ -192,9 +197,9 @@ export async function apiAddItem(item: Partial<Item>): Promise<Item> {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   };
-  
+
   const docRef = await addDoc(collection(db, ITEMS_COLLECTION), newItem);
-  
+
   // Add initial movement
   if (newItem.quantity > 0) {
     await apiAddMovement({
@@ -207,7 +212,7 @@ export async function apiAddItem(item: Partial<Item>): Promise<Item> {
       timestamp: new Date()
     });
   }
-  
+
   return {
     id: docRef.id,
     ...newItem
@@ -227,7 +232,7 @@ export async function apiUpdateItem(item: Item): Promise<Item> {
     location: item.location,
     updatedAt: Timestamp.now()
   };
-  
+
   await updateDoc(itemRef, updateData);
   return item;
 }
@@ -235,19 +240,19 @@ export async function apiUpdateItem(item: Item): Promise<Item> {
 export async function apiAddStock(itemId: number | string, quantity: number): Promise<void> {
   const itemRef = doc(db, ITEMS_COLLECTION, itemId.toString());
   const itemDoc = await getDoc(itemRef);
-  
+
   if (!itemDoc.exists()) {
     throw new Error('Item não encontrado');
   }
-  
+
   const itemData = itemDoc.data() as Item;
   const newQuantity = itemData.quantity + quantity;
-  
+
   await updateDoc(itemRef, {
     quantity: newQuantity,
     updatedAt: Timestamp.now()
   });
-  
+
   // Add movement
   await apiAddMovement({
     itemId: itemId.toString(),
@@ -269,9 +274,9 @@ export async function apiGetMovementHistory(): Promise<StockMovement[]> {
     collection(db, MOVEMENTS_COLLECTION),
     orderBy('timestamp', 'desc')
   );
-  
+
   const movementsSnapshot = await getDocs(movementsQuery);
-  
+
   return movementsSnapshot.docs.map(doc => {
     const data = doc.data();
     return {
@@ -298,41 +303,50 @@ export async function apiGetItemByBarcode(barcode: string): Promise<Item> {
     collection(db, ITEMS_COLLECTION),
     where('barcode', '==', barcode)
   );
-  
+
   const itemsSnapshot = await getDocs(itemsQuery);
-  
+
   if (itemsSnapshot.empty) {
     throw new Error('Item não encontrado');
   }
-  
+
   const doc = itemsSnapshot.docs[0];
+  const data: any = doc.data();
   return {
     id: doc.id,
-    ...doc.data()
+    ...data,
+    quantity: Number(data.quantity) || 0,
+    minQuantity: Number(data.minQuantity) || 0
   } as Item;
 }
 
 export async function apiCheckoutItem(itemId: number | string, quantity: number): Promise<void> {
   const itemRef = doc(db, ITEMS_COLLECTION, itemId.toString());
   const itemDoc = await getDoc(itemRef);
-  
+
   if (!itemDoc.exists()) {
     throw new Error('Item não encontrado');
   }
-  
-  const itemData = itemDoc.data() as Item;
-  
-  if (itemData.quantity < quantity) {
+
+  const itemDataRaw: any = itemDoc.data();
+  const itemData = {
+    ...itemDataRaw,
+    quantity: Number(itemDataRaw.quantity) || 0,
+    minQuantity: Number(itemDataRaw.minQuantity) || 0
+  } as Item;
+
+  const requested = Number(quantity) || 0;
+  if (itemData.quantity < requested) {
     throw new Error('Quantidade insuficiente');
   }
-  
-  const newQuantity = itemData.quantity - quantity;
-  
+
+  const newQuantity = itemData.quantity - requested;
+
   await updateDoc(itemRef, {
     quantity: newQuantity,
     updatedAt: Timestamp.now()
   });
-  
+
   // Add movement
   await apiAddMovement({
     itemId: itemId.toString(),

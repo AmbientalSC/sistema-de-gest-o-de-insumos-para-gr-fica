@@ -69,11 +69,11 @@ const CheckoutModal: React.FC<{
     );
 };
 
-const SuccessOverlay: React.FC<{ onDismiss: () => void; }> = ({ onDismiss }) => (
+const SuccessOverlay: React.FC<{ onDismiss: () => void; itemName?: string | null }> = ({ onDismiss, itemName }) => (
     <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex flex-col justify-center items-center text-white z-50 p-4 text-center" onClick={onDismiss}>
         <CheckCircle className="w-24 h-24 mb-6" />
         <h2 className="text-4xl font-extrabold mb-4">Sucesso!</h2>
-        <p className="text-lg">Baixa de estoque realizada.</p>
+        {itemName ? <p className="text-lg font-semibold">Baixa realizada: {itemName}</p> : <p className="text-lg">Baixa de estoque realizada.</p>}
         <p className="mt-8 text-sm opacity-80">(Toque para continuar)</p>
     </div>
 );
@@ -85,6 +85,7 @@ const CollaboratorDashboard: React.FC = () => {
     const [scannedItem, setScannedItem] = useState<Item | null>(null);
     const [scanError, setScanError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [successItemName, setSuccessItemName] = useState<string | null>(null);
     const scannerRef = useRef<any>(null);
     const streamTrackRef = useRef<MediaStreamTrack | null>(null);
     const [torchOn, setTorchOn] = useState(false);
@@ -244,6 +245,8 @@ const CollaboratorDashboard: React.FC = () => {
 
     const handleCheckout = async (itemId: number, quantity: number) => {
         await apiCheckoutItem(itemId, quantity);
+        // set success state and show item name (use atualmente escaneado)
+        setSuccessItemName(scannedItem ? scannedItem.name : null);
         setScannedItem(null);
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000); // Auto-dismiss success message
