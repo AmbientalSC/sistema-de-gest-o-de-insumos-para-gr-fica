@@ -117,7 +117,6 @@ const ItemForm: React.FC<{
                 return;
             }
         }
-        // fallback: tentar capturar canvas que html5-qrcode pode ter criado
         const innerCanvas = el.querySelector('canvas') as HTMLCanvasElement | null;
         if (innerCanvas) {
             try {
@@ -162,22 +161,21 @@ const ItemForm: React.FC<{
                             const usedConfig = chosenIsWebcam ? webcamConfig : config;
                             setIsWebcam(chosenIsWebcam);
                             await html5QrCode.start(cameraId, usedConfig, (decodedText: string) => {
+                                console.debug('[html5-qrcode] decoded:', decodedText);
                                 if (navigator.vibrate) navigator.vibrate(200);
                                 setScanSuccess(true);
                                 setFormData(prev => ({ ...prev, barcode: decodedText }));
                                 setBarcodeJustScanned(true);
                                 setTimeout(() => { stopScanner(); setScanSuccess(false); setIsScanning(false); setTimeout(() => setBarcodeJustScanned(false), 2000); }, 1000);
-                            }, (errorMessage: string) => { });
+                            }, (errorMessage: string) => { console.debug('[html5-qrcode] frame decode failed:', errorMessage); });
 
                             try {
-                                // pedir resolução maior para webcam/desktop
                                 const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: cameraId }, width: { ideal: 1280 }, height: { ideal: 720 } } as any });
                                 const track = stream.getVideoTracks()[0];
                                 streamTrackRef.current = track;
                                 const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
                                 setTorchAvailable(!!caps.torch);
 
-                                // tentar aplicar foco contínuo/zoom se suportado
                                 try {
                                     const advanced: any[] = [];
                                     if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
@@ -193,7 +191,7 @@ const ItemForm: React.FC<{
                                     if (advanced.length) {
                                         (track as any).applyConstraints({ advanced }).catch(() => { });
                                     }
-                                } catch (e) { /* ignore */ }
+                                } catch (e) { }
                             } catch (e) { setTorchAvailable(false); }
 
                             return;
@@ -203,12 +201,13 @@ const ItemForm: React.FC<{
 
                 try {
                     await html5QrCode.start({ facingMode: 'environment' } as any, config, (decodedText: string) => {
+                        console.debug('[html5-qrcode] decoded:', decodedText);
                         if (navigator.vibrate) navigator.vibrate(200);
                         setScanSuccess(true);
                         setFormData(prev => ({ ...prev, barcode: decodedText }));
                         setBarcodeJustScanned(true);
                         setTimeout(() => { stopScanner(); setScanSuccess(false); setIsScanning(false); setTimeout(() => setBarcodeJustScanned(false), 2000); }, 1000);
-                    }, (errorMessage: string) => { });
+                    }, (errorMessage: string) => { console.debug('[html5-qrcode] frame decode failed:', errorMessage); });
 
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } as any });
@@ -263,50 +262,46 @@ const ItemForm: React.FC<{
                                 </div>
                             )}
 
-                            <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
-                                <div className="pointer-events-auto mb-4 flex items-center gap-3">
-                                    <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
-                                    {isWebcam && (
-                                        <div className="flex items-center space-x-2 bg-black bg-opacity-40 px-3 py-2 rounded">
-                                            <label className="text-sm text-white">Zoom</label>
-                                            <input
-                                                type="range"
-                                                min={1}
-                                                max={4}
-                                                step={0.1}
-                                                value={zoom}
-                                                onChange={e => {
-                                                    const v = Number(e.target.value);
-                                                    setZoom(v);
-                                                    const track = streamTrackRef.current;
-                                                    if (track) {
-                                                        const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
-                                                        if (caps.zoom) {
-                                                            try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { }
-                                                        } else {
-                                                            // fallback: aplicar zoom via CSS transform no vídeo/canvas montado pelo html5-qrcode
-                                                            const el = document.getElementById(readerElementId);
-                                                            if (el) {
-                                                                (el as HTMLElement).style.transform = `scale(${v})`;
-                                                            }
-                                                        }
-                                                    }
-                                                }}
-                                                className="w-32"
-                                            />
-                                        </div>
-                                    )}
-                                    {torchAvailable && (
-                                        <button onClick={toggleTorch} className="bg-yellow-400 text-black px-3 py-2 rounded-md font-semibold">{torchOn ? 'Lanterna On' : 'Lanterna'}</button>
-                                    )}
-                                    <button onClick={stopScanner} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold">Cancelar Scanner</button>
-                                </div>
-                            </div>
-
-                            {lastCaptureInfo && <div className="absolute top-2 left-2 bg-black bg-opacity-40 text-white text-xs px-2 py-1 rounded">{lastCaptureInfo}</div>}
-
                         </div>
-                        {scanError && <p className="mt-2 text-red-600 text-sm">{scanError}</p>}
+
+                        <div className="mt-3 flex flex-col items-center justify-center gap-3">
+                            <div className="flex items-center gap-3">
+                                <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
+                                {isWebcam && (
+                                    <div className="flex items-center space-x-2 px-2">
+                                        <label className="text-sm">Zoom</label>
+                                        <input
+                                            type="range"
+                                            min={1}
+                                            max={4}
+                                            step={0.1}
+                                            value={zoom}
+                                            onChange={e => {
+                                                const v = Number(e.target.value);
+                                                setZoom(v);
+                                                const track = streamTrackRef.current;
+                                                if (track) {
+                                                    const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
+                                                    if (caps.zoom) {
+                                                        try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { }
+                                                    } else {
+                                                        const el = document.getElementById(readerElementId);
+                                                        if (el) (el as HTMLElement).style.transform = `scale(${v})`;
+                                                    }
+                                                }
+                                            }}
+                                            className="w-32"
+                                        />
+                                    </div>
+                                )}
+                                {torchAvailable && (
+                                    <button onClick={toggleTorch} className="bg-yellow-400 text-black px-3 py-2 rounded-md font-semibold">{torchOn ? 'Lanterna On' : 'Lanterna'}</button>
+                                )}
+                                <button onClick={stopScanner} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold">Cancelar Scanner</button>
+                            </div>
+                            {lastCaptureInfo && <div className="text-xs text-gray-600">{lastCaptureInfo}</div>}
+                            {scanError && <p className="mt-2 text-red-600 text-sm">{scanError}</p>}
+                        </div>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
