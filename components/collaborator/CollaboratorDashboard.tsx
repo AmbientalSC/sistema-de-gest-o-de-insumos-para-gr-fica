@@ -48,7 +48,7 @@ const CheckoutModal: React.FC<{
                     />
                 </div>
                 <div className="flex flex-col space-y-3">
-                     <button
+                    <button
                         onClick={handleConfirm}
                         disabled={isConfirming || quantity > item.quantity}
                         className="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300"
@@ -92,7 +92,7 @@ const CollaboratorDashboard: React.FC = () => {
         if (!isScanning && window.Html5Qrcode) {
             setScanError(null);
             setIsScanning(true);
-            
+
             // Wait for DOM element to be ready
             setTimeout(() => {
                 const element = document.getElementById(readerElementId);
@@ -102,56 +102,83 @@ const CollaboratorDashboard: React.FC = () => {
                     setIsScanning(false);
                     return;
                 }
-                
+
                 const html5QrCode = new window.Html5Qrcode(readerElementId);
                 scannerRef.current = html5QrCode;
-                
+
                 // Configurações otimizadas para CÓDIGOS DE BARRAS (retangular horizontal)
                 const config = {
-                    fps: 10,
-                    qrbox: { 
-                        width: 300,  // Largo para barcode horizontal
-                        height: 150  // Mais estreito verticalmente
+                    fps: 12,
+                    qrbox: {
+                        width: 360,
+                        height: 160
                     },
-                    aspectRatio: 1.777778, // 16:9 para câmera
-                    formatsToSupport: [
-                        // Formatos de códigos de barras (produtos)
-                        0,  // CODE_128
-                        1,  // CODE_39
-                        2,  // CODE_93
-                        3,  // CODABAR
-                        7,  // EAN_13 (padrão brasileiro)
-                        8,  // EAN_8
-                        11, // UPC_A (padrão americano)
-                        12, // UPC_E
-                        13, // UPC_EAN_EXTENSION
-                    ]
+                    aspectRatio: 1.777778,
+                    formatsToSupport: [0, 1, 2, 3, 7, 8, 11, 12, 13]
                 };
-                
-                html5QrCode.start(
-                    { facingMode: "environment" },
-                    config,
-                    async (decodedText: string) => {
-                        try {
-                            stopScanner();
-                            const item = await apiGetItemByBarcode(decodedText);
-                            setScannedItem(item);
-                        } catch (error) {
-                            setScanError("Código de barras não encontrado.");
-                            setTimeout(() => setScanError(null), 3000);
-                            stopScanner();
+
+                const startWithBestCamera = async () => {
+                    try {
+                        if (window.Html5Qrcode.getCameras) {
+                            const devices = await window.Html5Qrcode.getCameras();
+                            const rear = devices.find((d: any) => /back|rear|traseira|traseiro|environment/i.test(d.label || ''));
+                            const chosen = rear || devices[0];
+                            const cameraId = chosen ? chosen.id : undefined;
+                            if (cameraId) {
+                                await html5QrCode.start(
+                                    cameraId,
+                                    config,
+                                    async (decodedText: string) => {
+                                        try {
+                                            stopScanner();
+                                            const item = await apiGetItemByBarcode(decodedText);
+                                            setScannedItem(item);
+                                        } catch (error) {
+                                            setScanError("Código de barras não encontrado.");
+                                            setTimeout(() => setScanError(null), 3000);
+                                            stopScanner();
+                                        }
+                                    },
+                                    (errorMessage: string) => { /* ignore frame errors */ }
+                                );
+                                return;
+                            }
                         }
-                    },
-                    (errorMessage: string) => { /* ignore errors */ }
-                ).catch((err: any) => {
-                    console.error("Unable to start scanning.", err);
-                    setScanError("Não foi possível iniciar a câmera. Verifique as permissões.");
+                    } catch (err) {
+                        console.warn('Falha ao obter câmeras / iniciar com cameraId, usando fallback', err);
+                    }
+
+                    html5QrCode.start(
+                        { facingMode: 'environment' },
+                        config,
+                        async (decodedText: string) => {
+                            try {
+                                stopScanner();
+                                const item = await apiGetItemByBarcode(decodedText);
+                                setScannedItem(item);
+                            } catch (error) {
+                                setScanError("Código de barras não encontrado.");
+                                setTimeout(() => setScanError(null), 3000);
+                                stopScanner();
+                            }
+                        },
+                        (errorMessage: string) => { /* ignore errors */ }
+                    ).catch((err: any) => {
+                        console.error("Unable to start scanning.", err);
+                        setScanError("Não foi possível iniciar a câmera. Verifique as permissões.");
+                        setIsScanning(false);
+                    });
+                };
+
+                startWithBestCamera().catch((err: any) => {
+                    console.error('Erro ao iniciar scanner com câmera preferencial', err);
+                    setScanError('Erro ao iniciar scanner.');
                     setIsScanning(false);
                 });
             }, 100);
         }
     }, [isScanning]);
-    
+
     const stopScanner = useCallback(() => {
         if (scannerRef.current && isScanning) {
             scannerRef.current.stop().then(() => {
@@ -193,13 +220,13 @@ const CollaboratorDashboard: React.FC = () => {
         <div className="flex flex-col h-screen bg-gray-900 text-white">
             <Header title="Baixa de Insumo" userName={user.name} />
             <main className="flex-grow flex flex-col items-center justify-center p-4">
-                
+
                 {isScanning ? (
                     <div className="w-full max-w-md aspect-square bg-gray-800 rounded-lg overflow-hidden relative">
-                         <div id={readerElementId} className="w-full h-full" />
-                         <button onClick={stopScanner} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-3 rounded-lg font-bold">
+                        <div id={readerElementId} className="w-full h-full" />
+                        <button onClick={stopScanner} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 px-6 py-3 rounded-lg font-bold">
                             Cancelar
-                         </button>
+                        </button>
                     </div>
                 ) : (
                     <div className="text-center">
@@ -211,7 +238,7 @@ const CollaboratorDashboard: React.FC = () => {
                             onClick={startScanner}
                             className="flex items-center justify-center space-x-3 w-64 h-16 bg-indigo-600 rounded-lg text-xl font-bold hover:bg-indigo-500 transition-transform transform hover:scale-105"
                         >
-                            <Camera className="w-8 h-8"/>
+                            <Camera className="w-8 h-8" />
                             <span>Escanear</span>
                         </button>
                     </div>
