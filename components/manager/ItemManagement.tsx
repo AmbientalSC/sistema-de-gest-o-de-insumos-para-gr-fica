@@ -44,6 +44,7 @@ const ItemForm: React.FC<{
     const [barcodeJustScanned, setBarcodeJustScanned] = useState(false);
     const [isWebcam, setIsWebcam] = useState(false);
     const [zoom, setZoom] = useState<number>(1);
+    const [lastCaptureInfo, setLastCaptureInfo] = useState<string | null>(null);
 
     const scannerRef = useRef<any>(null);
     const streamTrackRef = useRef<MediaStreamTrack | null>(null);
@@ -95,6 +96,42 @@ const ItemForm: React.FC<{
             console.warn('Erro ao alternar torch', err);
         }
     };
+
+    const captureFrame = useCallback(() => {
+        const el = document.getElementById(readerElementId);
+        if (!el) {
+            setLastCaptureInfo('Reader element not found');
+            return;
+        }
+        const video = el.querySelector('video') as HTMLVideoElement | null;
+        const canvas = document.createElement('canvas');
+        if (video && video.readyState >= 2) {
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/png');
+                window.open(dataUrl, '_blank');
+                setLastCaptureInfo(`Capturado ${canvas.width}x${canvas.height} às ${new Date().toLocaleTimeString()}`);
+                return;
+            }
+        }
+        // fallback: tentar capturar canvas que html5-qrcode pode ter criado
+        const innerCanvas = el.querySelector('canvas') as HTMLCanvasElement | null;
+        if (innerCanvas) {
+            try {
+                const dataUrl = innerCanvas.toDataURL('image/png');
+                window.open(dataUrl, '_blank');
+                setLastCaptureInfo(`Capturado canvas ${innerCanvas.width}x${innerCanvas.height} às ${new Date().toLocaleTimeString()}`);
+                return;
+            } catch (e) {
+                setLastCaptureInfo('Erro ao capturar canvas');
+                return;
+            }
+        }
+        setLastCaptureInfo('Nenhum vídeo/canvas disponível no leitor');
+    }, [readerElementId]);
 
     const startScanner = useCallback(() => {
         if (isScanning || !window.Html5Qrcode) return;
@@ -228,6 +265,7 @@ const ItemForm: React.FC<{
 
                             <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
                                 <div className="pointer-events-auto mb-4 flex items-center gap-3">
+                                    <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
                                     {isWebcam && (
                                         <div className="flex items-center space-x-2 bg-black bg-opacity-40 px-3 py-2 rounded">
                                             <label className="text-sm text-white">Zoom</label>
@@ -264,6 +302,8 @@ const ItemForm: React.FC<{
                                     <button onClick={stopScanner} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold">Cancelar Scanner</button>
                                 </div>
                             </div>
+
+                            {lastCaptureInfo && <div className="absolute top-2 left-2 bg-black bg-opacity-40 text-white text-xs px-2 py-1 rounded">{lastCaptureInfo}</div>}
 
                         </div>
                         {scanError && <p className="mt-2 text-red-600 text-sm">{scanError}</p>}
