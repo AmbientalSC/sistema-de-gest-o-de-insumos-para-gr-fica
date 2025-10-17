@@ -249,57 +249,63 @@ const ItemForm: React.FC<{
 
                 {isScanning ? (
                     <div className="mb-4">
-                        <div className={`w-full bg-gray-800 rounded-lg overflow-hidden relative ${isWebcam ? 'h-64' : 'aspect-square'}`}>
-                            <div id={readerElementId} className="w-full h-full" />
+                        <div className="rounded-lg overflow-hidden">
+                            <div className={`w-full bg-gray-800 ${isWebcam ? 'h-64' : 'aspect-square'} relative z-0`}>
+                                <div id={readerElementId} className="w-full h-full" />
 
-                            {scanSuccess && (
-                                <div className="absolute inset-0 bg-green-500 bg-opacity-95 flex flex-col items-center justify-center text-white z-10 animate-pulse">
-                                    <svg className="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    <p className="text-2xl font-bold mb-2">✓ Código Encontrado!</p>
-                                    <p className="text-lg">Preenchendo formulário...</p>
-                                </div>
-                            )}
-
-                        </div>
-
-                        <div className="mt-3 flex flex-col items-center justify-center gap-3">
-                            <div className="flex items-center gap-3">
-                                <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
-                                {isWebcam && (
-                                    <div className="flex items-center space-x-2 px-2">
-                                        <label className="text-sm">Zoom</label>
-                                        <input
-                                            type="range"
-                                            min={1}
-                                            max={4}
-                                            step={0.1}
-                                            value={zoom}
-                                            onChange={e => {
-                                                const v = Number(e.target.value);
-                                                setZoom(v);
-                                                const track = streamTrackRef.current;
-                                                if (track) {
-                                                    const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
-                                                    if (caps.zoom) {
-                                                        try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { }
-                                                    } else {
-                                                        const el = document.getElementById(readerElementId);
-                                                        if (el) (el as HTMLElement).style.transform = `scale(${v})`;
-                                                    }
-                                                }
-                                            }}
-                                            className="w-32"
-                                        />
+                                {scanSuccess && (
+                                    <div className="absolute inset-0 bg-green-500 bg-opacity-95 flex flex-col items-center justify-center text-white z-10 animate-pulse">
+                                        <svg className="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <p className="text-2xl font-bold mb-2">✓ Código Encontrado!</p>
+                                        <p className="text-lg">Preenchendo formulário...</p>
                                     </div>
                                 )}
-                                {torchAvailable && (
-                                    <button onClick={toggleTorch} className="bg-yellow-400 text-black px-3 py-2 rounded-md font-semibold">{torchOn ? 'Lanterna On' : 'Lanterna'}</button>
-                                )}
-                                <button onClick={stopScanner} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold">Cancelar Scanner</button>
                             </div>
-                            {lastCaptureInfo && <div className="text-xs text-gray-600">{lastCaptureInfo}</div>}
+
+                            {/* Painel de controles FORA do vídeo - garante clicabilidade */}
+                            <div className="bg-white border-t px-3 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 z-20">
+                                <div className="flex items-center gap-2">
+                                    <button onClick={captureFrame} className="bg-blue-600 text-white px-3 py-2 rounded-md font-semibold">Tirar Foto</button>
+                                    {isWebcam && (
+                                        <div className="flex items-center space-x-2 px-2">
+                                            <label className="text-sm">Zoom</label>
+                                            <input
+                                                type="range"
+                                                min={1}
+                                                max={4}
+                                                step={0.1}
+                                                value={zoom}
+                                                onChange={e => {
+                                                    const v = Number(e.target.value);
+                                                    setZoom(v);
+                                                    const track = streamTrackRef.current;
+                                                    if (track) {
+                                                        const caps = ((track.getCapabilities && track.getCapabilities()) as any) || {};
+                                                        if (caps.zoom) {
+                                                            try { (track as any).applyConstraints({ advanced: [{ zoom: v }] }); } catch (err) { }
+                                                        } else {
+                                                            const el = document.getElementById(readerElementId);
+                                                            if (el) (el as HTMLElement).style.transform = `scale(${v})`;
+                                                        }
+                                                    }
+                                                }}
+                                                className="w-36"
+                                            />
+                                        </div>
+                                    )}
+                                    {torchAvailable && (
+                                        <button onClick={toggleTorch} className="bg-yellow-400 text-black px-3 py-2 rounded-md font-semibold">{torchOn ? 'Lanterna On' : 'Lanterna'}</button>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-2 justify-end">
+                                    {lastCaptureInfo && <div className="text-xs text-gray-600 mr-2">{lastCaptureInfo}</div>}
+                                    <button onClick={stopScanner} className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold">Cancelar Scanner</button>
+                                </div>
+                            </div>
+
                             {scanError && <p className="mt-2 text-red-600 text-sm">{scanError}</p>}
                         </div>
                     </div>
