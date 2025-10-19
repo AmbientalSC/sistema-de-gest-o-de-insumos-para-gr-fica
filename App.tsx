@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/auth/Login';
-import ManagerDashboard from './components/manager/ManagerDashboard';
+import ManagerDashboard from './components/manager/ManagerDashboardNew';
 import CollaboratorDashboard from './components/collaborator/CollaboratorDashboard';
 import { Role } from './types';
 
