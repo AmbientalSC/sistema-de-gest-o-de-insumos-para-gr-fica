@@ -29,14 +29,16 @@ const USERS_COLLECTION = 'users';
 // AUTHENTICATION
 // ============================================
 
-export async function apiLogin(username: string, password: string): Promise<User> {
+export type ApiLoginResult = { user?: User; candidates?: User[] };
+
+export async function apiLogin(username: string, password: string): Promise<ApiLoginResult> {
   try {
     // Convert username to email format for Firebase Auth
     const email = username.includes('@') ? username : `${username}@gestao-estoque.local`;
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-    // Get user data from Firestore
+    // Try to get Firestore document by uid
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, userCredential.user.uid));
 
     if (userDoc.exists()) {
@@ -48,29 +50,50 @@ export async function apiLogin(username: string, password: string): Promise<User
         throw new Error('Usuário desativado. Entre em contato com o administrador.');
       }
 
-      return {
+      return { user: {
         id: userDoc.id,
         name: userData.name,
         username: userData.username,
         role: userData.role,
         active: userData.active ?? true
-      } as User;
+      } as User };
     }
 
-    // Fallback for backward compatibility (users without Firestore doc)
+    // If no doc by uid, search all users for matching username (local-part) or provided username
+    const allUsers = await apiGetUsers();
+    const localUsername = (userCredential.user.email || '').split('@')[0];
+    const candidates = allUsers.filter(u => (u.username && (u.username === localUsername || u.username === username)));
+
+    if (candidates.length === 1) {
+      const c = candidates[0];
+      if (c.active === false) {
+        await firebaseSignOut(auth);
+        throw new Error('Usuário desativado. Entre em contato com o administrador.');
+      }
+      return { user: c };
+    }
+
+    if (candidates.length > 1) {
+      // Multiple profiles found for same login — return candidates for UI selection
+      return { candidates };
+    }
+
+    // Fallback for backward compatibility (no Firestore doc found)
     const isManager = username.toLowerCase() === 'gestor' ||
       email.toLowerCase().includes('gestor');
 
     return {
-      id: userCredential.user.uid,
-      name: isManager ? 'Admin Gestor' : 'Colaborador',
-      username: username,
-      role: isManager ? Role.Manager : Role.Collaborator,
-      active: true
-    } as User;
+      user: {
+        id: userCredential.user.uid,
+        name: isManager ? 'Admin Gestor' : 'Colaborador',
+        username: username,
+        role: isManager ? Role.Manager : Role.Collaborator,
+        active: true
+      } as User
+    };
   } catch (error: any) {
     console.error('Login error:', error);
-    if (error.message.includes('desativado')) {
+    if (error.message && error.message.includes('desativado')) {
       throw error;
     }
     throw new Error('Usuário ou senha inválidos');
@@ -138,10 +161,30 @@ export async function apiAddUser(user: Partial<User>): Promise<User> {
     } as User;
   } catch (error: any) {
     console.error('Error adding user:', error);
-    if (error.code === 'auth/email-already-in-use') {
-      throw new Error('Este usuário já existe');
+    if (error && error.code === 'auth/email-already-in-use') {
+      // Fallback: o e-mail já existe no Firebase Auth. Para permitir que o mesmo
+      // e-mail seja usado em perfis diferentes (ex: gestor e colaborador),
+      // criamos apenas o documento no Firestore em vez de falhar.
+      try {
+        const fallbackUser = {
+          name: user.name,
+          username: user.username,
+          role: user.role || Role.Collaborator,
+          active: true,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        };
+        const docRef = await addDoc(collection(db, USERS_COLLECTION), fallbackUser as any);
+        return {
+          id: docRef.id,
+          ...fallbackUser
+        } as User;
+      } catch (e: any) {
+        console.error('Fallback user creation failed:', e);
+        throw new Error('Erro ao criar usuário: ' + (e.message || String(e)));
+      }
     }
-    throw new Error('Erro ao criar usuário: ' + error.message);
+    throw new Error('Erro ao criar usuário: ' + (error?.message || String(error)));
   }
 }
 

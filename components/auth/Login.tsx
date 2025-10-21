@@ -9,6 +9,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { candidates, selectProfile } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +22,10 @@ const Login: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelect = (id: number | string) => {
+    if (selectProfile) selectProfile(id);
   };
 
   return (
@@ -81,6 +86,28 @@ const Login: React.FC = () => {
             </button>
           </div>
         </form>
+        {/* Modal de seleção de perfil quando houver candidatos */}
+        {candidates && candidates.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-lg">
+              <h3 className="text-lg font-bold mb-4">Escolha o perfil</h3>
+              <p className="text-sm text-gray-600 mb-4">Foram encontrados múltiplos perfis para este login. Escolha qual deseja usar:</p>
+              <div className="space-y-2">
+                {candidates.map(c => (
+                  <button key={c.id} onClick={() => handleSelect(c.id)} className="w-full text-left p-3 border rounded hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{c.name}</div>
+                        <div className="text-sm text-gray-500">{c.role}</div>
+                      </div>
+                      <div className="text-sm text-indigo-600">Usar</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

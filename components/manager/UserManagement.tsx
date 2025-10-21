@@ -25,6 +25,7 @@ const UserForm: React.FC<{
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
                 <h2 className="text-2xl font-bold mb-4">Adicionar Novo Usuário</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-sm text-gray-500">Obs: o mesmo e-mail pode ser usado para perfis diferentes (gestor/colaborador).</p>
                     <input name="name" value={formData.name || ''} onChange={handleChange} placeholder="Nome Completo" className="w-full p-2 border rounded" required />
                     <input name="username" value={formData.username || ''} onChange={handleChange} placeholder="Nome de Usuário" className="w-full p-2 border rounded" required />
                     <input name="password" type="password" value={formData.password || ''} onChange={handleChange} placeholder="Senha" className="w-full p-2 border rounded" required />
