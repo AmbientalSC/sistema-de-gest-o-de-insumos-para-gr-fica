@@ -2,6 +2,7 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { LogOut } from './Icons';
+import { Role } from '../../types';
 
 interface HeaderProps {
     title: string;
@@ -9,8 +10,10 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title, userName }) => {
-  const { logout } = useAuth();
-  const { toggleRole } = useAuth();
+  const { logout, toggleRole, user, isImpersonating } = useAuth();
+
+  const canToggle = user?.role === Role.Manager || isImpersonating;
+  const toggleLabel = isImpersonating ? 'Voltar para Gestor' : 'Alternar Login';
 
   return (
     <header className="bg-white shadow-md p-4 flex justify-between items-center">
@@ -18,13 +21,15 @@ const Header: React.FC<HeaderProps> = ({ title, userName }) => {
       <div className="flex items-center space-x-4">
         <span className="text-gray-600 hidden sm:block">Olá, {userName}</span>
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => toggleRole && toggleRole()}
-            className="px-3 py-1 bg-gray-100 text-gray-800 rounded hover:bg-gray-200 text-sm"
-            title="Alternar Login"
-          >
-            Alternar Login
-          </button>
+          {canToggle && (
+            <button
+              onClick={() => toggleRole && toggleRole()}
+              className="px-3 py-1 bg-gray-100 text-gray-800 rounded hover:bg-gray-200 text-sm"
+              title={toggleLabel}
+            >
+              {toggleLabel}
+            </button>
+          )}
           <button
             onClick={logout}
             className="flex items-center space-x-2 text-red-500 hover:text-red-700 transition-colors"

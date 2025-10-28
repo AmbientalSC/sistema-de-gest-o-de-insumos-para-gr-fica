@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
-import { User } from '../types';
+import { User, Role } from '../types';
 import { apiLogin, apiSignOut } from '../services/firebaseApi';
 
 interface AuthContextType {
@@ -10,6 +10,8 @@ interface AuthContextType {
   toggleRole?: () => void;
   candidates?: User[] | null;
   selectProfile?: (userId: number | string) => void;
+  isImpersonating?: boolean;
+  originalUser?: User | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +20,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user');
     return storedUser ? JSON.parse(storedUser) : null;
+  });
+  const [originalUser, setOriginalUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem('originalUser');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [isImpersonating, setIsImpersonating] = useState<boolean>(() => {
+    return localStorage.getItem('isImpersonating') === 'true';
   });
   const [candidates, setCandidates] = useState<User[] | null>(null);
 
@@ -53,14 +62,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const toggleRole = useCallback(() => {
+    // Capture current values to avoid closure staleness inside setUser
+    const currentlyImpersonating = isImpersonating;
+    const orig = originalUser;
+
     setUser(prev => {
       if (!prev) return prev;
-      const newRole = prev.role === 'Manager' ? 'Collaborator' : 'Manager';
-      const updated = { ...prev, role: newRole as any };
-      localStorage.setItem('user', JSON.stringify(updated));
-      return updated;
+
+      // If current user is Manager and not impersonating, start impersonation
+      if (prev.role === Role.Manager && !currentlyImpersonating) {
+        setOriginalUser(prev);
+        setIsImpersonating(true);
+        const updated: User = { ...prev, role: Role.Collaborator };
+        localStorage.setItem('user', JSON.stringify(updated));
+        localStorage.setItem('originalUser', JSON.stringify(prev));
+        localStorage.setItem('isImpersonating', 'true');
+        return updated;
+      }
+
+      // If currently impersonating, restore original user
+      if (currentlyImpersonating && orig) {
+        const restored = orig;
+        setOriginalUser(null);
+        setIsImpersonating(false);
+        localStorage.setItem('user', JSON.stringify(restored));
+        localStorage.removeItem('originalUser');
+        localStorage.setItem('isImpersonating', 'false');
+        return restored;
+      }
+
+      // Otherwise, do nothing (e.g., collaborator cannot toggle)
+      return prev;
     });
-  }, []);
+  }, [isImpersonating, originalUser]);
 
   const selectProfile = useCallback((userId: number | string) => {
     if (!candidates) return;
@@ -72,7 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [candidates]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, toggleRole, candidates, selectProfile }}>
+    <AuthContext.Provider value={{ user, login, logout, toggleRole, candidates, selectProfile, isImpersonating, originalUser }}>
       {children}
     </AuthContext.Provider>
   );
